@@ -31,6 +31,7 @@ def print_mat(mat):
 
 #%% Environment definition
 
+seed = 1000
 
 G_W = 10  # Grid width
 G_H = 10  # Grid height
@@ -142,39 +143,26 @@ def replay(Phi, U, alpha, V_init):
 
 class Policy:
 
-    def __init__(self):
-        self.path = {(3, 4): [RIGHT, UP, UP, RIGHT, RIGHT, RIGHT, RIGHT, DOWN,
-                              DOWN, DOWN, DOWN, DOWN, LEFT, DOWN, LEFT,
-                              LEFT, UP, RIGHT, UP, LEFT],
-                     (4, 5): [RIGHT, RIGHT, DOWN, LEFT]}
-
-        self.action_index = 0
-        self.episode_start = None
+    def __init__(self, seed):
+        self.rng = np.random.RandomState(seed)
 
     def take_action(self, state):
-        if not self.episode_start:
-            self.episode_start = tuple(state)
-            self.action_index = 0
-
-        cur_action = self.path[self.episode_start][self.action_index]
-
-        self.action_index += 1
-        if self.action_index >= len(self.path[self.episode_start]):
-            self.episode_start = None
-
+        future_state = np.array((-1, -1))
+        cur_action = -3
+        while not (0 <= future_state[0] < G_H and 0 <= future_state[1] < G_W):
+            cur_action = self.rng.randint(4)
+            future_state = state + action[cur_action]
         return cur_action
 
+#%% Trigger TD Learning with 10 episodes
 
-
-#%% Trigger TD Learning
-
-policy = Policy()
+policy = Policy(seed)
 
 pi = policy.take_action
 TD_V = td_learn(pi, 10)
 
-#%% Trigger Planning by replay learning
-policy = Policy()
+#%% Trigger Planning by replay learning with 10 episodes
+policy = Policy(seed)
 
 pi = policy.take_action
 V = np.zeros((G_H, G_W))
@@ -183,7 +171,9 @@ for i in range(10):
     RP_V = plan_by_replay(RP_V, alpha, 1, 1, pi)
 
 
-#%% Matrix comparison
+#%% Matrix comparison, they are effectively equivalent
 
-print(np.linalg.norm(TD_V - True_V))
-print(np.linalg.norm(RP_V - True_V))
+print("With 10 episodes and same policy")
+print("euclidian distance between True and TD V:", np.linalg.norm(TD_V - True_V))
+print("euclidian distance between True and RP V:", np.linalg.norm(RP_V - True_V))
+print("TD_V and RP_V are equal:", np.array_equal(RP_V, TD_V))
