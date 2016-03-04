@@ -35,7 +35,7 @@ seed = 1000
 
 G_W = 10  # Grid width
 G_H = 10  # Grid height
-starts = np.array([(3, 4), (4, 5), (0, 0), (7, 2)])
+starts = np.array([(0, 0), (4, 5), (3, 4), (7, 2)])
 end = np.array((5, 6))
 
 action = np.array([(1, 0), (0, 1), (-1, 0), (0, -1)])
@@ -87,6 +87,8 @@ def td_learn(pi, nb_episodes, ld=0):
 
 #%% Learning by replay ; Algo 3 -> 6 (Van Seijen & Sutton; 2015)
 # http://webdocs.cs.ualberta.ca/~vanseije/resources/papers/vanseijenicml15.pdf
+# It is super slow, takes a lot of memory and do a lot of redundant computation
+
 
 def do_action(s, a):
     s_n = s + action[a]
@@ -161,7 +163,8 @@ policy = Policy(seed)
 pi = policy.take_action
 TD_V = td_learn(pi, 10)
 
-#%% Trigger Planning by replay learning with 10 episodes
+#%% Trigger Planning by replay learning with 10 episodes, no memory and replay
+# aka TD(0) but way slower
 policy = Policy(seed)
 
 pi = policy.take_action
@@ -177,3 +180,18 @@ print("With 10 episodes and same policy")
 print("euclidian distance between True and TD V:", np.linalg.norm(TD_V - True_V))
 print("euclidian distance between True and RP V:", np.linalg.norm(RP_V - True_V))
 print("TD_V and RP_V are equal:", np.array_equal(RP_V, TD_V))
+
+#%% Doing some replay
+
+policy = Policy(seed)
+
+pi = policy.take_action
+V = np.zeros((G_H, G_W))
+RP3_V = V
+for i in range(4):
+    RP3_V = plan_by_replay(RP3_V, alpha, 3, 3, pi)
+
+print("euclidian distance between True and TD V:", np.linalg.norm(TD_V - True_V))
+print("euclidian distance between True and RP3 V:", np.linalg.norm(RP3_V - True_V))
+
+print ("RP3 is better than TD(0):", np.linalg.norm(TD_V - True_V) > np.linalg.norm(RP3_V - True_V))
