@@ -98,7 +98,7 @@ def plan_by_replay(V_init, alpha, k, m, pi):
     """
     V_init - Initial guess of the state values
     alpha - learning step
-    k - number of replay after taking action
+    k - number of replays after taking action
     m - number of previous states to take into account before replay
     pi - the policy, a function
     """
@@ -113,7 +113,7 @@ def plan_by_replay(V_init, alpha, k, m, pi):
         Phi.append(s)
         Y.append((r, gamma, s_n))
         W.append(np.copy(V))
-        for i_repeat in range(k):
+        for i_replay in range(k):
             W = update_weights(W, V, m)
             U = compute_targets(Y, W)
             V = replay(Phi, U, alpha, V_init)
@@ -178,8 +178,9 @@ policy = Policy()
 
 pi = policy.take_action
 V = np.zeros((G_H, G_W))
-
-RP_V = plan_by_replay(V, alpha, 10, 10, pi)
+RP_V = V
+for i in range(10):
+    RP_V = plan_by_replay(RP_V, alpha, 1, 1, pi)
 
 
 #%% Matrix comparison
