@@ -84,6 +84,60 @@ def td_learn(pi, nb_episodes, ld=0):
     return V
 
 
+#%% Learning by replay ; Algo 3 -> 6 (Van Seijen & Sutton; 2015)
+# http://webdocs.cs.ualberta.ca/~vanseije/resources/papers/vanseijenicml15.pdf
+
+def do_action(s, a):
+    s_n = s + action[a]
+    gamma = 0.9
+    if np.array_equal(s_n, end):
+        gamma = 0
+    return s_n, gamma, r(s_n)
+
+def plan_by_replay(V_init, alpha, k, m, pi):
+    """
+    V_init - Initial guess of the state values
+    alpha - learning step
+    k - number of replay after taking action
+    m - number of previous states to take into account before replay
+    pi - the policy, a function
+    """
+    V = np.copy(V_init)
+    Phi = []
+    Y = []
+    W = []
+    s = starts[0]
+    while not np.array_equal(s, end):
+        a = pi(s)
+        s_n, gamma, r = do_action(s, a)
+        Phi.append(s)
+        Y.append((r, gamma, s_n))
+        W.append(np.copy(V))
+        for i_repeat in range(k):
+            W = update_weights(W, V, m)
+            U = compute_targets(Y, W)
+            V = replay(Phi, U, alpha, V_init)
+        s = s_n
+    return V
+
+def update_weights(W, V, m):
+    t = len(W)
+    return [np.copy(W[i]) if i < t-m else np.copy(V) for i in range(t)]
+
+def compute_targets(Y, W):
+    U = np.zeros((len(Y),))
+    for i in range(len(Y)):
+        r, gamma, s_n = Y[i]
+        U[i] = r + gamma * W[i][tuple(s_n)]
+    return U
+
+def replay(Phi, U, alpha, V_init):
+    V = np.copy(V_init)
+    for i in range(len(Phi)):
+        V[tuple(Phi[i])] += alpha * (U[i] - V[tuple(Phi[i])])
+    return V
+        
+
 #%% defining policy
 
 class Policy:
@@ -119,8 +173,16 @@ policy = Policy()
 pi = policy.take_action
 TD_V = td_learn(pi, 10)
 
+#%% Trigger Planning by replay learning
+policy = Policy()
+
+pi = policy.take_action
+V = np.zeros((G_H, G_W))
+
+RP_V = plan_by_replay(V, alpha, 10, 10, pi)
 
 
 #%% Matrix comparison
 
-np.linalg.norm(TD_V - True_V)
+print(np.linalg.norm(TD_V - True_V))
+print(np.linalg.norm(RP_V - True_V))
