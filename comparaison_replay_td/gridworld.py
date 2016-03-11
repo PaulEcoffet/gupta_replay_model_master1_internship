@@ -297,3 +297,14 @@ theta_joli = theta.reshape((G_H, G_W))
 
 print_mat(theta_joli)
 
+def forgetful_sarsa(env, alpha, beta, ld, k, theta_init, d_init, A_init):
+    env = Env()
+    feat_dim = (env.s.shape[0], 1)
+    e = np.zeros(feat_dim)
+    theta = np.copy(theta_init)
+    d = np.copy(d_init)
+    A = np.copy(A_init)
+    phi_env = env.s
+    phi
+    a = np.argmax()
+    while not env.is_end:
