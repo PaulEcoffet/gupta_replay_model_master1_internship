@@ -36,4 +36,4 @@ données, lesquelles sont sans modèle et lesquelles sont avec modèle ?
 * $(S_m, A_m)$, les $m$ dernières actions prises par l'agent, dans l'ordre
 * $F_\pi$, la matrice de transition d'un état à l'autre, inférée par l'agent
 
-# Pourquoi le *Forgetful LSTD($\lambda$) est model-based ?
+# Pourquoi le *Forgetful LSTD($\lambda$)* est model-based ?

@@ -31,7 +31,7 @@ def print_mat(mat):
 
 #%% Environment definition
 
-seed = 1000
+seed = 32
 
 G_W = 10  # Grid width
 G_H = 10  # Grid height
@@ -155,6 +155,10 @@ class Policy:
             cur_action = self.rng.randint(4)
             future_state = state + action[cur_action]
         return cur_action
+    
+    def vec_take_action(self, state):
+        grid_coord = vec_to_grid(state)
+        return self.take_action(grid_coord)
 
 #%% Trigger TD Learning with 10 episodes
 
@@ -195,3 +199,101 @@ print("euclidian distance between True and TD V:", np.linalg.norm(TD_V - True_V)
 print("euclidian distance between True and RP3 V:", np.linalg.norm(RP3_V - True_V))
 
 print ("RP3 is better than TD(0):", np.linalg.norm(TD_V - True_V) > np.linalg.norm(RP3_V - True_V))
+
+
+#%% Grid to vec
+
+def grid_to_vec(*in_coord):
+    try:
+        coord = (in_coord[0][0], in_coord[0][1])
+    except TypeError:
+        coord = (in_coord[0], in_coord[1])
+    vec = np.zeros((G_H * G_W, 1))
+    vec[coord[0] * G_W + coord[1]] = 1
+    return vec
+
+def vec_to_grid(vec):
+    coord = np.where(vec == 1)
+    coord = int(coord[0])
+    return np.array((coord / G_W, coord % G_W))
+
+#%% env definition
+
+end_vec = grid_to_vec(end)
+start_vec = grid_to_vec(starts[1])
+
+class Env():
+    def __init__(self):
+        self.s = np.copy(start_vec)
+    
+    @property
+    def reward(self):
+        if self.is_end:
+            return 1
+        else:
+            return 0
+    
+    def do_action(self, a):
+        grid = vec_to_grid(self.s)
+        s_n = grid_to_vec(grid + action[a])
+        self.s = s_n
+    
+    @property
+    def gamma(self):
+        if self.is_end:
+            return 0
+        return 0.9
+    
+    @property
+    def is_end(self):
+        return np.array_equal(self.s, end_vec)
+        
+        
+
+#%% Forgetful LSTD(lambda)
+
+def forgetful_lstd(env, pi, alpha, beta, ld, k, theta_init, d_init, A_init):
+    feat_dim = (env.s.shape[0], 1)
+    e = np.zeros(feat_dim)
+    theta = np.copy(theta_init)
+    d = np.copy(d_init)
+    A = np.copy(A_init)
+    phi = env.s
+    for i in xrange(100):
+        env = Env()
+        phi = env.s
+        while not env.is_end:
+            assert(e.shape == feat_dim)
+            assert(theta.shape == feat_dim)
+            assert(d.shape == feat_dim)
+            assert(A.shape == (G_W * G_H, G_W * G_H))
+            a = pi(phi)
+            env.do_action(a)
+            phi_next = env.s
+            r = env.reward
+            gamma = env.gamma
+            i_beta_phi = np.eye(feat_dim[0]) - beta * (np.dot(phi, phi.T))
+            e = np.dot(i_beta_phi, e) + phi
+            phi_phi_n = phi - gamma * phi_next
+            A = np.dot(i_beta_phi, A) + np.dot(e, phi_phi_n.T)
+            d = np.dot(i_beta_phi, d) + e * r
+            e = gamma * ld * e
+            for i in xrange(k):
+                theta = theta + alpha * (d - np.dot(A, theta))
+            phi = phi_next
+    return theta
+
+#%% run forgetful lstd(ld)
+
+env = Env()
+policy = Policy(seed)
+pi = policy.vec_take_action
+theta = np.zeros((G_H * G_W, 1))
+d_init = theta / alpha # zeros
+A_init = np.eye(G_H * G_W) / alpha
+
+theta = forgetful_lstd(env, pi, alpha, alpha, 0, 10, theta, d_init, A_init)
+theta_joli = theta.reshape((G_H, G_W))
+
+print_mat(theta_joli)
+
