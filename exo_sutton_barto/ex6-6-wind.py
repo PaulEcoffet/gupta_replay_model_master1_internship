@@ -36,7 +36,7 @@ Q = np.array([[[0 if 0 <= m_col + col < 10 and 0 <= m_row + row < 7 else -inf
                for col in range(10)]
               for row in range(7)])
 
-for i in range(1000000):
+for i in range(1000):
     s = np.array((3, 0))
     a = np.argmax(Q[tuple(s)])
     while not (s[0] == 3 and s[1] == 7):
