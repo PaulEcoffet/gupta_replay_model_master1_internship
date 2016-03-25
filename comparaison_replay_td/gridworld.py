@@ -305,14 +305,51 @@ theta_joli = theta.reshape((G_H, G_W))
 
 print_mat(theta_joli)
 
-def forgetful_sarsa(env, alpha, beta, ld, k, theta_init, d_init, A_init):
+#%% Forgetful sarsa
+
+def choose_action(theta, phi, eps):
+    if np.random.uniform() < eps:
+        return np.random.choice(xrange(theta.shape[0]))
+    else:
+        return np.argmax([np.dot(theta[i].T, phi) for i in xrange(theta.shape[0])])
+
+def forgetful_sarsa(env, alpha, beta, ld, k, theta_init, d_init, A_init, 
+                    eps=0.01):
     env = Env()
     feat_dim = (env.s.shape[0], 1)
     e = np.zeros(feat_dim)
     theta = np.copy(theta_init)
     d = np.copy(d_init)
     A = np.copy(A_init)
-    phi_env = env.s
-    phi
-    a = np.argmax()
+    phi = env.s
+    a = choose_action(theta, phi, eps)
+    path = np.array([[" " for i in range(G_W)] for j in range(G_H)])
     while not env.is_end:
+        env.do_action(a)
+        r = env.reward
+        phi_n = env.s
+        path[vec_to_grid(phi)] = "*"
+        a_n = choose_action(theta, phi_n, eps)
+        print(vec_to_grid(phi), a, r)
+        gamma = env.gamma
+        i_beta_phi = np.eye(feat_dim[0]) - beta * (np.dot(phi, phi.T))
+        e = np.dot(i_beta_phi, e) + phi
+        phi_phi_n = phi - gamma * phi_n
+        A[a] = np.dot(i_beta_phi, A[a]) + np.dot(e, phi_phi_n.T)
+        d[a] = np.dot(i_beta_phi, d[a]) + e * r
+        e = gamma * ld * e
+        for i in xrange(k):
+            theta[a] = theta[a] + alpha*(d[a] - np.dot(A[a], theta[a]))
+        a = a_n
+        phi = phi_n
+    print(path)
+    return theta
+
+#%% Run forgetful_sarsa
+
+env = Env()
+theta = np.zeros((4, G_H * G_W, 1))
+d_init = theta / alpha # zeros
+A_init = np.array([np.eye(G_H * G_W) / alpha for i in range(4)])
+
+theta = forgetful_sarsa(env, alpha, alpha, 0, 20, theta, d_init, A_init)
