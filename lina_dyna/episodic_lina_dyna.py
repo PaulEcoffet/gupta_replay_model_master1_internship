@@ -75,7 +75,7 @@ def softmax(score, tau):
 def ep_lindyn_mg(phi, theta, F, b):
     pqueue = PriorityQueue()
     q = np.array([0. for i in action])
-    for day in range(1):
+    for day in range(10):
         for i in range(3):
             start_pos = np.random.randint(G_W * G_H)
             phi = np.zeros((G_W * G_H, 1))
@@ -106,10 +106,10 @@ def ep_lindyn_mg(phi, theta, F, b):
         print("La queue est vide :", pqueue.empty())
         while not pqueue.empty() and p > 0:
             unused_prio, i = pqueue.get()
-            print("looking at", i)
+            #print("looking at", i)
             for j in range(F.shape[2]):
                 if np.any(F[:, i, j] != 0):
-                    print (i, '->', j)
+                    #print (i, '->', j)
                     try:   
                         G_sleep[min(i, j)][max(i,j)]["weight"] += 1
                     except KeyError:
@@ -126,7 +126,6 @@ def ep_lindyn_mg(phi, theta, F, b):
         for u,v, w in G_sleep.edges_iter(data="weight"):
             max_w = max(max_w, w)
         for u,v, w in G_sleep.edges_iter(data="weight"):
-            print(u, v)
             nx.draw_networkx_edges(G_sleep, pos, edgelist=[(u, v)], width=float(w)/max_w * 10)
         nx.draw_networkx_labels(G_sleep,pos,font_size=10,font_family='sans-serif')
         plt.axis("off")
