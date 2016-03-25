@@ -225,18 +225,26 @@ start_vec = grid_to_vec(starts[1])
 class Env():
     def __init__(self):
         self.s = np.copy(start_vec)
+        self.punish = False
     
     @property
     def reward(self):
         if self.is_end:
             return 1
+        elif self.punish:
+            return -1
         else:
             return 0
     
     def do_action(self, a):
+        self.punish = False
         grid = vec_to_grid(self.s)
-        s_n = grid_to_vec(grid + action[a])
-        self.s = s_n
+        new_coord = grid + action[a]
+        if 0 <= new_coord[0] < G_H and 0 <= new_coord[1] < G_W:
+            s_n = grid_to_vec(new_coord)
+            self.s = s_n
+        else:
+            self.punish = True
     
     @property
     def gamma(self):
