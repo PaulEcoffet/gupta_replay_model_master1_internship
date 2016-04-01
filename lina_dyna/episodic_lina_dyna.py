@@ -84,11 +84,14 @@ def ep_lindyn_mg(phi, theta, F, b):
     pqueue = PriorityQueue()
     q = np.array([0. for i in action])
     for day in range(10):
-        for i in range(3):
-            start_pos = np.random.randint(G_W * G_H)
+        path = []
+        for episode in range(30):
+            path.append([])
+            start_pos = np.random.randint(G_W * G_H/2)
+            start_pos = 4
             phi = np.zeros((G_W * G_H, 1))
             phi[start_pos, 0] = 1
-            print ("starting at", start_pos)
+            #print ("starting at", start_pos)
             while not np.array_equal(phi, end):
                 for a in range(len(action)):
                     q[a] = np.dot(b[a].T, phi) + gamma * np.dot(np.dot(theta.T, F[a]), phi)
@@ -102,23 +105,39 @@ def ep_lindyn_mg(phi, theta, F, b):
                 for i in range(len(phi)):
                     if phi[i] != 0:
                         pqueue.put((-np.abs(delta * phi[i]), i))
+                        if not path[episode] or path[episode][-1] != i: # Si on se cogne pas contre un mur
+                            path[episode].append(i)
                 phi = phi_n
-            # end of episode
+        # end of episode
         print("sleeping")
         # Sleep
         
         G_sleep = nx.Graph()
         
         
-        p = 100 # Number of replay max
-        print("La queue est vide :", pqueue.empty())
+        p = 1000 # Number of replay max
+        ep_cur = None
+        step_cur = None
         while not pqueue.empty() and p > 0:
             unused_prio, i = pqueue.get()
-            #print("looking at", i)
+            if not ep_cur:
+                for ep, ep_path in enumerate(path):
+                    if i == ep_path[0]:
+                        ep_cur = ep
+                        step_cur = 1
+            else:
+                if i == path[ep_cur][step_cur]:
+                    step_cur += 1
+                    if step_cur == len(path[ep_cur]):
+                        print("REPLAY TOTAL")
+                        ep_cur = None
+                else:
+                    if step_cur > 2:
+                        print("longest", step_cur)
+                    ep_cur = None
             for j in range(F.shape[2]):
                 if np.any(F[:, i, j] != 0):
-                    #print (i, '->', j)
-                    try:   
+                    try:
                         G_sleep[min(i, j)][max(i,j)]["weight"] += 1
                     except KeyError:
                         G_sleep.add_edge(min(i, j), max(i, j), weight=1)
