@@ -31,6 +31,7 @@ def print_mat(mat):
                 print(" "*5, end="")
         print()
 
+
 #%% Environment definition
 
 INFTY = float("inf")
@@ -39,6 +40,13 @@ G_W = 5  # Grid width
 G_H = 5  # Grid height
 end = np.zeros((G_W * G_H, 1))
 end[4 * G_W + 3, 0] = 1
+
+
+def print_map():
+    for i in range(G_H):
+        for j in range(G_W):
+            print ("{:2d}".format(i * G_W + j), end=" ")
+        print ()
 
 action = np.array([(1, 0), (0, 1), (-1, 0), (0, -1)])
 DOWN = 0
