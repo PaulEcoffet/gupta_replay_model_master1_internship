@@ -68,11 +68,36 @@ def do_action(phi, a):
             return phi_n, 1
         else:
             return phi_n, 0
-        
+
 gamma = 0.9
 alpha = 0.1
 
 #%% episodic linear dyna Q-learning
+
+def add_connection(G, i, j):
+    """
+    Ajoute une occurence de connexion entre i et j dans le graphe G.
+    L'ordre de i et j n'importe pas.
+    G - Le graphe
+    i - le premier noeud
+    j - le second noeud
+    """
+    try:
+        G[min(i, j)][max(i,j)]["weight"] += 1
+    except KeyError:
+        G.add_edge(min(i, j), max(i, j), weight=1)
+
+def plot_graph(G):
+    pos = nx.circular_layout(G)
+    nx.draw_networkx_nodes(G, pos)
+    max_w = 1
+    for u,v, w in G.edges_iter(data="weight"):
+        max_w = max(max_w, w)
+    for u,v, w in G.edges_iter(data="weight"):
+        nx.draw_networkx_edges(G, pos, edgelist=[(u, v)], width=float(w)/max_w * 10)
+    nx.draw_networkx_labels(G,pos,font_size=10,font_family='sans-serif')
+    plt.axis("off")
+    plt.show()
 
 def softmax(score, tau):
     exp_score = np.exp(score/tau)
@@ -80,22 +105,21 @@ def softmax(score, tau):
     return np.random.choice(len(score), p=prob)
 
 
-def ep_lindyn_mg(phi, theta, F, b):
-    pqueue = PriorityQueue()
+def ep_lindyn_mg(phi, theta, F, b, nb_day, nb_ep_per_day, replay_max):
     q = np.array([0. for i in action])
-    for day in range(10):
+    for day in range(nb_day):
+        pqueue = PriorityQueue()
         path = []
-        for episode in range(30):
+        for episode in range(nb_ep_per_day):
             path.append([])
-            start_pos = np.random.randint(G_W * G_H/2)
-            start_pos = 4
+            start_pos = np.random.randint(G_W * G_H/2) # Départ dans la partie haute
             phi = np.zeros((G_W * G_H, 1))
             phi[start_pos, 0] = 1
             #print ("starting at", start_pos)
             while not np.array_equal(phi, end):
                 for a in range(len(action)):
                     q[a] = np.dot(b[a].T, phi) + gamma * np.dot(np.dot(theta.T, F[a]), phi)
-                a = softmax(q, 0.1)
+                a = softmax(q, 0.5)
                 phi_n, r = do_action(phi, a)
                 #print (np.where(phi == 1), "->", np.where(phi_n == 1))
                 delta = r + gamma * np.dot(theta.T, phi_n) - np.dot(theta.T, phi)
@@ -111,83 +135,47 @@ def ep_lindyn_mg(phi, theta, F, b):
         # end of episode
         print("sleeping")
         # Sleep
-        
         G_sleep = nx.Graph()
-        
-        
-        p = 1000 # Number of replay max
-        ep_cur = None
-        step_cur = None
+        nodes = [i for i in range(G_W * G_H)]
+        np.random.shuffle(nodes)
+        G_sleep.add_nodes_from(nodes)
+
+        p = replay_max # Number of replay max
+        step_cur = np.array([-1 for elem in path])
+        step_start = np.array([-1 for elem in path])
         while not pqueue.empty() and p > 0:
             unused_prio, i = pqueue.get()
-            if not ep_cur:
-                for ep, ep_path in enumerate(path):
-                    if i == ep_path[0]:
-                        ep_cur = ep
-                        step_cur = 1
-            else:
-                if i == path[ep_cur][step_cur]:
-                    step_cur += 1
-                    if step_cur == len(path[ep_cur]):
-                        print("REPLAY TOTAL")
-                        ep_cur = None
-                else:
-                    if step_cur > 2:
-                        print("longest", step_cur)
-                    ep_cur = None
+            #for i in range(len(path)):
+            #    if step()
             for j in range(F.shape[2]):
                 if np.any(F[:, i, j] != 0):
-                    try:
-                        G_sleep[min(i, j)][max(i,j)]["weight"] += 1
-                    except KeyError:
-                        G_sleep.add_edge(min(i, j), max(i, j), weight=1)
+                    add_connection(G_sleep, i, j)
                     delta = -INFTY
                     for a in range(len(action)):
                         delta = np.max((delta, b[a][j] + gamma * np.dot(theta.T, F[a, :, j]) - theta[j]))
                     theta[j] = theta[j] + alpha * delta
                     pqueue.put((-np.abs(delta), j))
             p = p - 1
-        pos = nx.circular_layout(G_sleep)
-        nx.draw_networkx_nodes(G_sleep, pos)
-        max_w = 1
-        for u,v, w in G_sleep.edges_iter(data="weight"):
-            max_w = max(max_w, w)
-        for u,v, w in G_sleep.edges_iter(data="weight"):
-            nx.draw_networkx_edges(G_sleep, pos, edgelist=[(u, v)], width=float(w)/max_w * 10)
-        nx.draw_networkx_labels(G_sleep,pos,font_size=10,font_family='sans-serif')
-        plt.axis("off")
-        plt.show()
+        plot_graph(G_sleep)
+
     return theta, b, F
 
 
 #%%%
 
-start = np.zeros((G_W * G_H, 1))
-start[0, 0] = 1
+def do_learn(nb_day, nb_ep_per_day, replay_max):
+    start = np.zeros((G_W * G_H, 1))
+    start[0, 0] = 1
+    theta = np.zeros((G_W * G_H, 1))
+    F = np.zeros((len(action), G_W * G_H, G_W * G_H))
+    b = np.zeros((len(action), G_W * G_H, 1))
+    theta_f, b_f, F_f = (ep_lindyn_mg(start, theta, F, b, nb_day, nb_ep_per_day, replay_max))
+    t_shape = theta_f.reshape((G_H, G_W))
 
-theta = np.zeros((G_W * G_H, 1))
-F = np.zeros((len(action), G_W * G_H, G_W * G_H))
-b = np.zeros((len(action), G_W * G_H, 1))
-
-theta_f, b_f, F_f = (ep_lindyn_mg(start, theta, F, b))
-
-t_shape = theta_f.reshape((G_H, G_W))
-
-#%% F_plot du cheat
-
-G = nx.Graph()
-F_sum = np.sum(F, axis=0)
-for i in xrange(F_sum.shape[0]):
-    for j in xrange(i):
-        weight=F_sum[i][j] + F_sum[j][i]
-        if weight > 1e-14:
-            G.add_edge(i, j, weight=weight)
-#nx.draw_circular(G)
 
 ##################
 ###### TODO ######
 ##################
 # Evaluer les performances en fin et début de journée
 # Passer avec des champs récepteurs
-# grapher F en mode bogoss
 # Linear Dyna lambda ?
