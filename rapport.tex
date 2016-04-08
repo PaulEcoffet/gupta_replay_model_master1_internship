@@ -1,0 +1,100 @@
+\documentclass[]{report}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+    \usepackage{xltxtra,xunicode}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Mapping=tex-text,Scale=MatchLowercase}
+  \newcommand{\euro}{€}
+\fi
+% use microtype if available
+\IfFileExists{microtype.sty}{\usepackage{microtype}}{}
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+\hypersetup{breaklinks=true,
+            bookmarks=true,
+            pdfauthor={Paul Ecoffet},
+            pdftitle={Rapport de stage},
+            colorlinks=true,
+            citecolor=blue,
+            urlcolor=blue,
+            linkcolor=magenta,
+            pdfborder={0 0 0}}
+\urlstyle{same}  % don't use monospace font for urls
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\setcounter{secnumdepth}{0}
+
+\title{Rapport de stage}
+\author{Paul Ecoffet}
+\date{8 avril 2016}
+
+
+\begin{document}
+\maketitle
+
+{
+\hypersetup{linkcolor=black}
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\section{Introduction}\label{introduction}
+
+\section{Reinforcement learning}\label{reinforcement-learning}
+
+Reinforcement Learning is a kind of learning mechanism where an agent tries to maximise a reward by doing some specific action in an environment. Reinforcement learning is thought to be
+
+\section{Learning by replay}\label{learning-by-replay}
+
+\subsection{In reinforcement learning}
+\label{sub:In reinforcement learning}
+
+\subsection{In vivo}
+\label{sub:In vivo}
+
+
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  Equivalence between replay and planning as show in \cite{vanseijen_deeper_2015}.
+\item
+  Can one use Linear dyna with prioritised sweeping as a learning by replay method?
+\item
+
+\end{itemize}
+
+\section{Modeling navigation
+learning}\label{modeling-navigation-learning}
+
+\section{Place cells}\label{place-cells}
+Place cells are high level integrative neurons in the hippocampus. They have a specific
+
+\section{What are the sequences that are replayed? How are they
+selected?}\label{what-are-the-sequences-that-are-replayed-how-are-they-selected}
+
+\section{Limitations}\label{limitations}
+
+
+\bibliographystyle{apa}
+\bibliography{DreamReplay}
+
+
+\end{document}
