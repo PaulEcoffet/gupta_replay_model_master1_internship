@@ -1,0 +1,176 @@
+\documentclass[]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{textgreek}
+\usepackage{ifxetex,ifluatex}
+\usepackage{todonotes}
+\usepackage{xifthen}
+\usepackage{soul}
+\usepackage[american]{babel}
+\usepackage[ruled,vline]{algorithm2e}
+
+\usepackage[backend=biber,style=apa]{biblatex}
+\addbibresource{DreamReplay.bib}
+\DeclareLanguageMapping{american}{american-apa}
+\sethlcolor{Apricot}
+\newcommand\bla[1]{\ifthenelse{\isempty{#1}}{\hl{**~bla~bla~**}}{\hl{**~#1~**}}}
+
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+    \usepackage{xltxtra,xunicode}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Mapping=tex-text,Scale=MatchLowercase}
+  \newcommand{\euro}{€}
+\fi
+% use microtype if available
+\IfFileExists{microtype.sty}{\usepackage{microtype}}{}
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+\usepackage[all]{hypcap}
+
+\usepackage{csquotes}
+
+
+\hypersetup{breaklinks=true,
+            pdfauthor={Paul Ecoffet},
+            pdftitle={Rapport de stage},
+            colorlinks=true,
+            citecolor=blue,
+            urlcolor=blue,
+            linkcolor=magenta,
+            pdfborder={0 0 0}}
+\urlstyle{same}  % don't use monospace font for urls
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\setcounter{secnumdepth}{0}
+
+\title{Can the replayed sequences during sleep can be modelised by a reinforcement learning algorithm -- Rapport de stage}
+\author{Paul Ecoffet}
+\date{15 avril 2016}
+
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% Première phrase trop proche de l'abstract de Gupta.
+On the neurobiology side, replays of behavioral sequences has been observed in the hippocampus during sharp wave ripples complexes and is thought to be a mechanism involed in memory consolidation and learning. On the computer science side, some reinforcement learning algorithms also use replays of behavioral sequences to improve the learning speed. One can ask if this algorithms behave in the same way that hippocampus replays of sequences, and if these algorithms can model the replay mechanisms observed in the hippocampus. For instance, can those algorithms explain why certain sequences are replayed instead of others? We'll show that that \bla{we'll see}.
+\end{abstract}
+
+{
+\hypersetup{linkcolor=black}
+\setcounter{tocdepth}{3}
+%\tableofcontents
+}
+\section{Introduction}\label{introduction}
+
+\subsection{Reinforcement learning}\label{reinforcement-learning}
+
+Reinforcement Learning is a kind of learning mechanism where an agent tries to maximise a reward by doing some specific action in an environment \parencite{sutton_reinforcement_1998}. \bla{}
+
+\subsection{Learning by replay}\label{learning-by-replay}
+
+\subsubsection{In reinforcement learning}
+\label{sub:In reinforcement learning}
+
+Reinforcement learning methods like Q-learning or Sarsa converge slowly and need a lot of samples to be efficient. These algorithms, based on the TD(\textlambda), use the sample once to improve their solution, then discard it \parencite{adam_experience_2012}.
+
+To improve the efficiency of reinforcement learning methods, experience replay can be use. \textcite{vanseijen_deeper_2015} offers a good analysis about learning by replay. The goal of replay is to use the maximum of information an experience offers. Each sample is used several times, improving the solution several times. Compared to TD(0), replay techniques give a better convergence to the optimal solution with the same number of experiences. Reinforcement learning methods using replay are more expensive than TD(\textlambda) both in memory and in computations, though the memory and computational power needed can be reduced a lot as \textcite{vanseijen_deeper_2015} shows.
+
+\begin{algorithm}[H]
+  \DontPrintSemicolon
+  \SetAlgoNoLine
+  \While{test}{
+    works\;
+  }
+  \caption{TD(0)}
+
+\end{algorithm}
+
+\subsubsection{Planning and replay?}
+\label{subs:Planning and replay}
+
+RL algorithms with planning use a model of their environment to infer the value  of a behaviour without actually doing it. The model is commonly a transition table between the possible states in the environment according to the action done by the agent. For exemple, if the agent has to solve a maze and has access to a transition table, then it can look up the table and know that if he is in the case \((3, 5)\) and it does the action ``go to the east'', it will be in \((3, 6)\).
+
+The model can be either directly accessible (given by the developer) or inferred by the agent. When the model is inferred, the agent builds explicitly the transition table according to the experiences he has in its environment. In this document, we will mainly talk about the Dyna algorithms. Dyna is a class of RL algorithms where the model is inferred by the agent. There is two phase during an iteration of Dyna. The first phase is when the agent interacts with its environment: it observes its state and reward, do an action according to its policy and go to the next state. It also updates its model of the environment according to this new experience. The second part is the \emph{planning} phase. During the planning phase, the agent improves its value function estimation with simulations according to its model: The agent generates a sample state, an experience, according to some rules (a probability distribution) and uses its model to compute the value of this sample thanks its model. Then, it updates its solution according to this simulation \parencite{sutton_dyna-style_2012}.
+It is interesting to note that the distribution used has no influence on whether the solution will converge or not, but has an influence on the speed of convergence. Therefore, choosing a good distribution can greatly improve the performance of Dyna. \textcite{sutton_dyna-style_2012} shows that choosing only already explored samples can have a good impact on performances. Therefore, Dyna can be efficient with a selection of already experienced samples, the planning phase is then a \emph{replay} phase.
+
+\textcite{vanseijen_deeper_2015} highlights even more the strong similarity between RL methods using replay and RL methods using planning. First of all, both of them can be considered as model-based algorithms. Indeed, planning methods using an inferred model use an integrated version of samples experienced over time, thus they are by definition model-based algorithms.
+RL algorithms using experience replay do not store an explicit model, with transition tables and reward estimation. Yet, they store for each sample the state they were in, the reward they received and the next action they did. These data can be considered as a model. They implicitly contains an inferred model of the environnement. Transitions and rewards are available through all the samples the agent experienced and stored in memory \parencite{vanseijen_deeper_2015}.
+
+
+In addition to that, \textcite{vanseijen_deeper_2015} shows a complete equivalence in the value function approximation at each iteration between a TD(0) inspired algorithm with replay and Linear Dyna, a model-based RL algorithm. Though Linear Dyna is a model based algorithm and thought as a ``looking ahead'' algorithm and the replay algorithm as a ``looking backward'' algorithm, they do the exact same calculation.
+The Linear Dyna variation \textcite{vanseijen_deeper_2015} presents is a batch Linear Dyna. Each iteration of planning compute using an integrated version of all the states and transition experienced. One can ask if different variations of Linear Dyna can also be considered as learning by replay methods. For instance, \textcite{sutton_dyna-style_2012} reviewed different Linear Dyna algorithms which look at one possible state per planning iteration. They shows that using already experienced states and prioritizing about states where the difference between the estimated value and the real value was the greatest is an efficient strategy.
+
+
+\begin{itemize}
+\item
+  Can one use Linear dyna with prioritised sweeping as a learning by replay method?
+\end{itemize}
+
+\subsubsection{In vivo}
+\label{sub:In vivo}
+
+\paragraph{Place cells}\label{place-cells}
+Place cells are high level integrative neurons in the hippocampus. They have a specific receptive field called a place field. When the animal is in the receptive field of a place cell, the place cell spikes. It is on these cells that the replay of behavioral sequences is observed during sleep.
+
+\paragraph{Replay}
+Replays of sequences have been observed in the rat hippocampus after navigation tasks \parencite{wilson_reactivation_1994, skaggs_replay_1996, davidson_hippocampal_2009, gupta_hippocampal_2010}. The place cells whose activations were highly correlated in time are also activated during sleep and respect the same correlation \parencite{wilson_reactivation_1994}. Replays of place cells activation sequences that occurs during the day can also be observed either forward \parencite{skaggs_replay_1996} or even backward \parencite{gupta_hippocampal_2010}. Though, those articles do not propose explantion about why these specific sequences were chosen or about the length of these sequences. \textcite{gupta_hippocampal_2010} shows that the recency of the experience is a wrong hypothesis but do not propose other explanation. \todo{to check}
+
+We can model place cells in a reinforcement algorithm by using a tiling of the environment (see Figure~\ref{tiling_schema}). Using
+
+\begin{figure}
+  {\centering
+  \includegraphics[width=0.7\linewidth]{images/schema_tiling.png}
+  \caption{Tiling of an environment}\label{tiling_schema}
+  \par}
+  \small{Each disk can be thought as the receptive field of a place cell}
+\end{figure}
+
+\begin{itemize}
+\item Replay during sleep and during hesitation
+\item Replay can be either forward or backward
+\item Replay can also be action that has never be done? --> Planning somewhat?
+\item Replay aren't necessary about the most recent event?
+\item Is ``surprise'' a good criterion?
+\end{itemize}
+
+\cite{gupta_hippocampal_2010}
+
+\subsection{Model navigation learning}\label{model-navigation-learning}
+
+
+
+\subsection{What are the sequences that are replayed? How are they
+selected?}\label{what-are-the-sequences-that-are-replayed-how-are-they-selected}
+
+\textcite{gupta_hippocampal_2010} shows that the sequences that are replayed are not necessarly the most recent experiences. It shows also that the sequences that are replayed can be either forward or backward. In forward replays, the sequence is replayed in the same order as the sequence the rat has done. In backward replays, the sequence is done in the reverse order. What is the explanation for the selection of the sequence which is replayed, and its order? No criteria are proposed in \textcite{gupta_hippocampal_2010}. Yet, we can make interesting hypothesis knowing that \textcite{sutton_dyna-style_2012} suggests that there are very good samples to replay in a Dyna algorithm, and those sample are the sample where the difference between the expected value of a state and its real value is the greatest. It is consistant with \textcite{gupta_hippocampal_2010} which states that the most common replays are the one that leads to the reward or comes from the reward.
+
+\section{Method}\label{method}
+
+\section{Results}\label{results}
+
+\section{Conclusion}\label{conclusion}
+
+\section{Limitations}\label{limitations}
+
+
+\printbibliography{}
+
+\end{document}
