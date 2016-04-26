@@ -131,17 +131,9 @@ The Linear Dyna variation \textcite{vanseijen_deeper_2015} presents is a batch L
 Place cells are high level integrative neurons in the hippocampus. They have a specific receptive field called a place field. When the animal is in the receptive field of a place cell, the place cell spikes. It is on these cells that the replay of behavioral sequences is observed during sleep.
 
 \paragraph{Replay}
-Replays of sequences have been observed in the rat hippocampus after navigation tasks \parencite{wilson_reactivation_1994, skaggs_replay_1996, davidson_hippocampal_2009, gupta_hippocampal_2010}. The place cells whose activations were highly correlated in time are also activated during sleep and respect the same correlation \parencite{wilson_reactivation_1994}. Replays of place cells activation sequences that occurs during the day can also be observed either forward \parencite{skaggs_replay_1996} or even backward \parencite{gupta_hippocampal_2010}. Though, those articles do not propose explantion about why these specific sequences were chosen or about the length of these sequences. \textcite{gupta_hippocampal_2010} shows that the recency of the experience is a wrong hypothesis but do not propose other explanation. \todo{to check}
+Replays of sequences have been observed in the rat hippocampus after navigation tasks \parencite{wilson_reactivation_1994, skaggs_replay_1996, davidson_hippocampal_2009, gupta_hippocampal_2010}. The place cells whose activations were highly correlated in time are also activated during sleep and respect the same correlation \parencite{wilson_reactivation_1994}. Replays of place cells activation sequences that occurs during the day can also be observed either forward \parencite{skaggs_replay_1996} or even backward \parencite{gupta_hippocampal_2010}. Coherent sequences that have never been done are also ``replayed'' by the rat \parencite{gupta_hippocampal_2010}. Though, those articles do not propose explantion about why these specific sequences were chosen or about the length of these sequences. \textcite{gupta_hippocampal_2010} shows that the recency of the experience is a wrong hypothesis but do not propose other explanation\todo{to check}. We will try to provide a criterion to explain why specific sequences are replayed and not others.
 
-We can model place cells in a reinforcement algorithm by using a tiling of the environment (see Figure~\ref{tiling_schema}). Using
 
-\begin{figure}
-  {\centering
-  \includegraphics[width=0.7\linewidth]{images/schema_tiling.png}
-  \caption{Tiling of an environment}\label{tiling_schema}
-  \par}
-  \small{Each disk can be thought as the receptive field of a place cell}
-\end{figure}
 
 \begin{itemize}
 \item Replay during sleep and during hesitation
@@ -151,9 +143,25 @@ We can model place cells in a reinforcement algorithm by using a tiling of the e
 \item Is ``surprise'' a good criterion?
 \end{itemize}
 
-\cite{gupta_hippocampal_2010}
-
 \subsection{Model navigation learning}\label{model-navigation-learning}
+
+We can model place cells in a reinforcement learning algorithm by using a tiling of the environment (see Figure~\ref{tiling_schema}) as \textcite{	tamosiunaite_path-finding_2008} have done. Each feature of the feature vector (the state of the agent) represents the level of activation of a tile: a gaussian-like function of the distance of the agent from a kernel. For instance, the \(i^{th}\) feature of the feature vector will be the distance from the kernel \(k_i\) according to a gaussian function (see Figure~\ref{feature_schema}). The value of the \(i^{th}\) feature can be interpreted as the firing rate of a place-cell with a receptive field centered in \(k_i\).
+
+\noindent\begin{figure}[htbp]
+  \centering
+  \begin{minipage}[t]{.5\linewidth}
+    {\centering
+    \includegraphics[width=0.9\linewidth]{images/schema_tiling.png}
+    \caption{Tiling of an environment}\label{tiling_schema}
+    \par}
+    \small{Each disk can be thought as the receptive field of a place cell}
+  \end{minipage}%
+  \begin{minipage}[t]{.5\linewidth}
+    \centering
+    \includegraphics[width=0.9\linewidth]{images/feature_schema.png}
+    \caption{Features representation}\label{feature_schema}
+  \end{minipage}
+\end{figure}
 
 
 
@@ -163,7 +171,12 @@ selected?}\label{what-are-the-sequences-that-are-replayed-how-are-they-selected}
 \textcite{gupta_hippocampal_2010} shows that the sequences that are replayed are not necessarly the most recent experiences. It shows also that the sequences that are replayed can be either forward or backward. In forward replays, the sequence is replayed in the same order as the sequence the rat has done. In backward replays, the sequence is done in the reverse order. What is the explanation for the selection of the sequence which is replayed, and its order? No criteria are proposed in \textcite{gupta_hippocampal_2010}. Yet, we can make interesting hypothesis knowing that \textcite{sutton_dyna-style_2012} suggests that there are very good samples to replay in a Dyna algorithm, and those sample are the sample where the difference between the expected value of a state and its real value is the greatest. It is consistant with \textcite{gupta_hippocampal_2010} which states that the most common replays are the one that leads to the reward or comes from the reward.
 
 \section{Method}\label{method}
-
+\begin{itemize}
+  \item Pourquoi x place-cells?
+  \item Pourquoi ce radius?
+  \item Quel densité?
+  \item Quel type d'activation?
+\end{itemize}
 \section{Results}\label{results}
 
 \section{Conclusion}\label{conclusion}
