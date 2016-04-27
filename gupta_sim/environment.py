@@ -34,26 +34,23 @@ class Environment:
         features = self.get_features()
         patches = [
             plt.Circle([x, y], self.place_field_radius, fill=True,
-                       fc=[0.5, 0.5, 1, features[i]/2], ec=[0, 0, 0, 0.5])
+                       fc=[0.5, 0.5, 1, features[i]*3/4], ec=[0, 0, 0, 0.5])
             for i, (x, y) in enumerate(self.kernels)]
         patches.append(mpatches.RegularPolygon(self.pos, 5, radius=10))
         collec = PatchCollection(patches, match_original=True)
-        return patches
+        return collec
 
-def test():
-    env = Environment(75, 150)
+def test(time=100):
+    env = Environment(75, 200)
     fig = plt.figure()
     ax = fig.gca()
     ax.set_ylim([0, env.H])
     ax.set_xlim([0, env.W])
     frames = []
-    for i in range(10):
-        frames.append(env.get_repr())
-        env.pos[1] += 120
-    im_ani = animation.FuncAnimation(fig, animate, frames=frames, repeat=False, interval=50, blit=False)
-
+    for i in range(time):
+        res = ax.add_collection(env.get_repr())
+        frames.append((res,))
+        env.pos[1] += np.random.randint(3, 10)
+        env.pos[0] += np.random.randint(-5, 5)
+    im_ani = animation.ArtistAnimation(fig, frames, repeat=True, interval=50, blit=True)
     plt.show()
-
-def animate(frame):
-    print(frame)
-    return [frame, ]
