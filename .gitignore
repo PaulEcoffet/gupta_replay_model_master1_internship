@@ -90,3 +90,6 @@ target/
 *.fdb_latexmk
 *.fls
 *.bcf
+
+# Heavy files
+*.mp4
