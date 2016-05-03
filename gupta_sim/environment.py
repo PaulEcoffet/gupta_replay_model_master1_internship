@@ -41,7 +41,7 @@ class Environment:
         return collec
 
 def test(time=100):
-    env = Environment(75, 200)
+    env = Environment(75, 140)
     fig = plt.figure()
     ax = fig.gca()
     ax.set_ylim([0, env.H])
@@ -53,4 +53,5 @@ def test(time=100):
         env.pos[1] += np.random.randint(3, 10)
         env.pos[0] += np.random.randint(-5, 5)
     im_ani = animation.ArtistAnimation(fig, frames, repeat=True, interval=50, blit=True)
+    im_ani.save("place_cells.mp4", dpi=500)
     plt.show()
