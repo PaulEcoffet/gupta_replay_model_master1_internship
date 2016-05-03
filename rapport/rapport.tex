@@ -41,9 +41,9 @@
 \else
   \usepackage[unicode=true]{hyperref}
 \fi
-\usepackage[all]{hypcap}
+\usepackage[all]{hypcap} % ref link to the top of the figure
 
-\usepackage{csquotes}
+\usepackage{csquotes} % Dependency for APA
 
 
 \hypersetup{breaklinks=true,
@@ -82,7 +82,11 @@ On the neurobiology side, replays of behavioral sequences has been observed in t
 
 \subsection{Reinforcement learning}\label{reinforcement-learning}
 
-Reinforcement Learning is a kind of learning mechanism where an agent tries to maximise a reward by doing some specific action in an environment \parencite{sutton_reinforcement_1998}. \bla{}
+Reinforcement Learning is a kind of learning mechanism where an agent tries to maximise a reward by doing some specific action in an environment \parencite{sutton_reinforcement_1998}. The environment is defined by \emph{states} in which the agent can be. The agent can be in one state at a time. In each state, the agent can do \emph{actions} from its repertoire. When doing a specific action in a specific state, the agent receives a \emph{reward}, which is a real. The reward can be positive or negative. The goal of the agent is to maximise the amount of reward it receives.
+
+To evaluate a state, the agent can estimate the \emph{value} of it. The value of a state is the expected reward the agent will receive if he is in this state plus the future rewards it can get from future states (with a discount factor).
+
+\subsubsection{Notation}
 
 \subsection{Learning by replay}\label{learning-by-replay}
 
@@ -140,7 +144,7 @@ Replays of sequences have been observed in the rat hippocampus after navigation 
 \item Replay can be either forward or backward
 \item Replay can also be action that has never be done? --> Planning somewhat?
 \item Replay aren't necessary about the most recent event?
-\item Is ``surprise'' a good criterion?
+\item Is ``surprise'' a good crterion?
 \end{itemize}
 
 \subsection{Model navigation learning}\label{model-navigation-learning}

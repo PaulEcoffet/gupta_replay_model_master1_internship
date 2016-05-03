@@ -89,3 +89,4 @@ target/
 *.synctex.gz
 *.fdb_latexmk
 *.fls
+*.bcf
