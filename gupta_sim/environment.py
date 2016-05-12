@@ -15,9 +15,14 @@ class Environment:
     def __init__(self, nb_place_cells, place_field_radius, seed=None):
         self.H = 1000
         self.W = 1000
-        self.kernels = np.array([(np.random.randint(self.H),
-                                  np.random.randint(self.W))
-                        for dummy in range(nb_place_cells)])
+        if seed is not None:
+            np.random.seed(seed)
+        # Place Cells definition
+        self.nb_place_cells = nb_place_cells
+        row = int(np.sqrt(nb_place_cells))
+        self.kernels = np.array([((i%row) * self.W/row + np.random.randint(self.W/(row)),
+                                  (i//row) * self.H / row + np.random.randint(self.H/(row)))
+                        for i in range(nb_place_cells)])
         self.place_field_radius = place_field_radius
         self.place_field_radius = np.random.choice([4*place_field_radius/5, place_field_radius, 3*place_field_radius/2], nb_place_cells)
         self.sigma2 = self.place_field_radius**2
@@ -116,6 +121,7 @@ def animate(j, env, ax):
 
 
 def test(time=100):
+    #plt.ion()
     env = Environment(75, 140)
     fig = plt.figure()
     ax = fig.gca()
