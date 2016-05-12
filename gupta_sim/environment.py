@@ -1,12 +1,13 @@
-from __future__ import division
+from __future__ import division, print_function
 
+import copy
+from collections import OrderedDict
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib import animation
-from matplotlib.collections import PatchCollection
-
+from matplotlib.collections import Collection, PatchCollection
 
 
 class Environment:
@@ -18,27 +19,101 @@ class Environment:
                                   np.random.randint(self.W))
                         for dummy in range(nb_place_cells)])
         self.place_field_radius = place_field_radius
-        self.sigma2 = 10000
-        self.eps = np.exp(-self.place_field_radius**2 / (2*self.sigma2))
-        print("eps", self.eps)
-        self.start = np.array((int(0.5 * self.W), int(0.2 * self.H)))
-        self.goal = np.array((int(0.8 * self.W), int(0.8 * self.H)))
-        self.pos = self.start
+        self.place_field_radius = np.random.choice([4*place_field_radius/5, place_field_radius, 3*place_field_radius/2], nb_place_cells)
+        self.sigma2 = self.place_field_radius**2
+
+        # Init definition
+        self.start = np.array((int(0.5 * self.W), int(0.2 * self.H)), dtype=float)
+        self.goal = np.array((int(0.9 * self.W), int(0.9 * self.H)), dtype=float)
+        self.pos = np.copy(self.start)
+
+        self.walls = [[int(0.2 * self.W), int(0.8 * self.H), int(0.4 * self.W), int(0.2 * self.H)],
+                      [int(0.6 * self.W), int(0.8 * self.H), int(0.8 * self.W), int(0.2 * self.H)]]
+        self.reward = 0
+        self.end = False
+
+        # action definition
+        self.velocity = 40
+        self.direction = np.pi / 2
+        self.action = [0]
+        for i in [2, 4]:
+            for j in [1, i-1, -1, -(i-1)]:
+                if j*np.pi/i not in self.action:
+                    self.action.append(j*np.pi/i)
+        self.patches = self.init_patches()
+
+
+    def reinit(self):
+        self.start = np.array((int(0.5 * self.W), int(0.2 * self.H)), dtype=float)
+        self.goal = np.array((int(0.9 * self.W), int(0.9 * self.H)), dtype=float)
+        self.reward = 0
+        self.end = False
+
+
+    def init_patches(self):
+        patches = OrderedDict({(x, y):
+                    plt.Circle([x, y], self.place_field_radius[i], fill=True,
+                               fc=[1, 1, 1, 0], ec=[0, 0, 0, 0.4])
+                    for i, (x, y) in enumerate(self.kernels)})
+        patches['pos'] = mpatches.RegularPolygon(self.pos, 5, radius=10)
+        patches['goal'] = mpatches.RegularPolygon(self.goal, 4, radius=10, fc=(1, 0, 0))
+        for i, wall in enumerate(self.walls):
+            patches['wall', i] = mpatches.Rectangle((wall[0], wall[1]), wall[2] - wall[0], wall[3] - wall[1])
+        return patches
 
     def get_features(self):
-        features = np.exp(-np.sum(np.power(self.pos - self.kernels, 2), axis=1)/(2*self.sigma2))
-        features[features <= self.eps] = 0
+        features = np.exp(-np.sum(np.power(self.pos - self.kernels, 2), axis=1)/(self.sigma2))
+        features[np.linalg.norm(self.pos - self.kernels, axis=1) > self.place_field_radius] = 0
         return features
 
-    def get_repr(self):
-        features = self.get_features()
-        patches = [
-            plt.Circle([x, y], self.place_field_radius, fill=True,
-                       fc=[0.5, 0.5, 1, features[i]*3/4], ec=[0, 0, 0, 0.5])
-            for i, (x, y) in enumerate(self.kernels)]
-        patches.append(mpatches.RegularPolygon(self.pos, 5, radius=10))
-        collec = PatchCollection(patches, match_original=True)
+    def get_repr(self, features=None):
+        if features is None:
+            features = self.get_features()
+        for i, (x, y) in enumerate(self.kernels):
+            self.patches[x, y].set_fc([0.5, 0.5, 1, features[i]*3/4])
+        self.patches['pos'].center = tuple(self.pos)
+        self.patches['goal'].center = tuple(self.goal)
+        collec = PatchCollection(self.patches.values(), match_original=True)
         return collec
+
+    def do_action(self, action):
+        self.direction = action
+        noisy_dir = self.direction #+ np.random.normal(scale=np.pi/20)
+        new_pos = self.pos + np.array([self.velocity * np.cos(noisy_dir),
+                                       self.velocity * np.sin(noisy_dir)])
+
+        if not (0 < new_pos[0] < self.W and 0 < new_pos[1] < self.H):
+            np.clip(new_pos, [0, 0], [self.W, self.H], out=new_pos)
+            self.reward = -1
+        elif self.in_walls(new_pos):
+            new_pos = np.copy(self.pos)
+            self.reward = -1
+        elif self.on_reward(new_pos):
+            self.reward = 1
+            self.end = True
+            new_pos = np.copy(self.start)
+        else:
+            self.reward = 0
+
+        self.pos[0] = new_pos[0]  # Prevent weird bug when id change for matplotlib
+        self.pos[1] = new_pos[1]
+
+        return self.get_features(), copy.copy(self.reward)
+
+    def in_walls(self, pos):
+        for wall in self.walls:
+            if wall[0] < pos[0] < wall[2] and wall[3] < pos[1] < wall[1]:
+                return True
+        return False
+
+    def on_reward(self, pos):
+        return np.linalg.norm(self.pos - self.goal) < 100
+
+def animate(j, env, ax):
+    res = ax.add_collection(env.get_repr())
+    env.do_action(0)
+    return res,
+
 
 def test(time=100):
     env = Environment(75, 140)
@@ -46,12 +121,7 @@ def test(time=100):
     ax = fig.gca()
     ax.set_ylim([0, env.H])
     ax.set_xlim([0, env.W])
-    frames = []
-    for i in range(time):
-        res = ax.add_collection(env.get_repr())
-        frames.append((res,))
-        env.pos[1] += np.random.randint(3, 10)
-        env.pos[0] += np.random.randint(-5, 5)
-    im_ani = animation.ArtistAnimation(fig, frames, repeat=True, interval=50, blit=True)
+
+    #im_ani = animation.FuncAnimation(fig, animate, frames=time, fargs=(env, ax), repeat=True, interval=10, blit=True)
     im_ani.save("place_cells.mp4", dpi=500)
-    plt.show()
+    plt.show(im_ani)
