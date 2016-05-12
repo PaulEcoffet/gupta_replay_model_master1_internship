@@ -93,9 +93,9 @@ To evaluate a state, the agent can estimate the \emph{value} of it. The value of
 \subsubsection{In reinforcement learning}
 \label{sub:In reinforcement learning}
 
-Reinforcement learning methods like Q-learning or Sarsa converge slowly and need a lot of samples to be efficient. These algorithms, based on the TD(\textlambda), use the sample once to improve their solution, then discard it \parencite{adam_experience_2012}.
+Reinforcement learning methods like Q-learning or Sarsa converge slowly and need a lot of samples to be efficient. These algorithms, based on the TD(\textlambda) algorithm, use the sample once to improve their solution, then discard it \parencite{adam_experience_2012}.
 
-To improve the efficiency of reinforcement learning methods, experience replay can be use. \textcite{vanseijen_deeper_2015} offers a good analysis about learning by replay. The goal of replay is to use the maximum of information an experience offers. Each sample is used several times, improving the solution several times. Compared to TD(0), replay techniques give a better convergence to the optimal solution with the same number of experiences. Reinforcement learning methods using replay are more expensive than TD(\textlambda) both in memory and in computations, though the memory and computational power needed can be reduced a lot as \textcite{vanseijen_deeper_2015} shows.
+To improve the efficiency of reinforcement learning methods, one solution is to replay past experiences. \textcite{vanseijen_deeper_2015} offers a good analysis about learning by replay. The goal of replay is to use the maximum of information an experience offers. Each sample is used several times using the current knowledge of the agent, improving the solution several times. Compared to TD(0), replay techniques give a better convergence to the optimal solution with the same number of experiences. Reinforcement learning methods using replay are more expensive than TD(\textlambda) both in memory and in computations, though the memory and computational power needed can be reduced a lot as \textcite{vanseijen_deeper_2015} shows.
 
 \begin{algorithm}[H]
   \DontPrintSemicolon
@@ -172,7 +172,7 @@ We can model place cells in a reinforcement learning algorithm by using a tiling
 \subsection{What are the sequences that are replayed? How are they
 selected?}\label{what-are-the-sequences-that-are-replayed-how-are-they-selected}
 
-\textcite{gupta_hippocampal_2010} shows that the sequences that are replayed are not necessarly the most recent experiences. It shows also that the sequences that are replayed can be either forward or backward. In forward replays, the sequence is replayed in the same order as the sequence the rat has done. In backward replays, the sequence is done in the reverse order. What is the explanation for the selection of the sequence which is replayed, and its order? No criteria are proposed in \textcite{gupta_hippocampal_2010}. Yet, we can make interesting hypothesis knowing that \textcite{sutton_dyna-style_2012} suggests that there are very good samples to replay in a Dyna algorithm, and those sample are the sample where the difference between the expected value of a state and its real value is the greatest. It is consistant with \textcite{gupta_hippocampal_2010} which states that the most common replays are the one that leads to the reward or comes from the reward.
+\textcite{gupta_hippocampal_2010} shows that the sequences that are replayed are not necessarly the most recent experiences. It shows also that the sequences that are replayed can be either forward or backward. In forward replays, the sequence is replayed in the same order as the sequence the rat has done. In backward replays, the sequence is done in the reverse order. What is the explanation for the selection of the sequence which is replayed, and its order? No criteria are proposed in \textcite{gupta_hippocampal_2010}. Yet, we can make interesting hypothesis knowing that \textcite{sutton_dyna-style_2012} suggests that there are very good samples to replay in a Dyna algorithm, and those sample are the sample where the difference between the expected value of a state and its real value is the greatest. It is consistant wit#h \textcite{gupta_hippocampal_2010} which states that the most common replays are the one that leads to the reward or comes from the reward.
 
 \section{Method}\label{method}
 \begin{itemize}
@@ -181,6 +181,9 @@ selected?}\label{what-are-the-sequences-that-are-replayed-how-are-they-selected}
   \item Quel densité?
   \item Quel type d'activation?
 \end{itemize}
+
+I try to reproduce the results of \textcite{gupta_hippocampal_2010} and see if a Linear Dyna with prioritized sweeping as developped in \textcite{sutton_dyna-style_2012} can reproduce the results observed \emph{in vivo}. To do so, I have modelised the maze used by \textcite{gupta_hippocampal_2010}. The source code is available at \bla{github}. It is a continuous world.
+
 \section{Results}\label{results}
 
 \section{Conclusion}\label{conclusion}
