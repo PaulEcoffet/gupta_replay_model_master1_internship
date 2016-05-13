@@ -6,10 +6,13 @@ INFTY = float("inf")
 gamma = 0.9
 alpha = 0.1
 
-def softmax(score, tau):
+def softmax(score, tau, straight_bias=False): # Adapted from Minija Tamosiunaite et al. (2008)
     exp_score = np.exp(score/tau)
-    prob = exp_score/np.sum(exp_score)
-    res = np.random.choice(len(score), p=prob)
+    prob1 = exp_score/np.sum(exp_score)
+    if straight_bias:
+        prob2 = np.array([0.5, 0.183, 0.183, 0.067, 0.067])  # Geometric sequence with u0 = 0.5, 2 * sum(u_i, i=1..(len(action)-1)/2) = 0.5
+    res = np.random.choice(len(score), p=0.5*prob1+0.5*prob2)
+    #print(score, prob, res)
     return res
 
 def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, do_yield=False):
@@ -22,7 +25,7 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, do_yield=F
                 q = np.array([0. for i in env.action]) # Q of Q-learning
                 for a in range(len(q)):
                     q[a] = np.inner(b[a], phi) + gamma * np.dot(np.dot(theta.T, F[a]), phi)
-                a = softmax(q, 1)
+                a = softmax(q, 2, straight_bias=True)
                 phi_n, r = env.do_action(a)
 
                 delta = r + gamma * np.dot(theta.T, phi_n) - np.dot(theta.T, phi)
@@ -35,7 +38,7 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, do_yield=F
                 if do_yield:
                     yield env.get_features()
         # end of episode
-        #print("sleeping")
+        print("sleeping")
         # Sleep
         p = replay_max # Number of replay max
         while not pqueue.empty() and p > 0:

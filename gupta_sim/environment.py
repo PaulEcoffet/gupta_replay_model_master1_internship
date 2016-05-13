@@ -38,14 +38,21 @@ class Environment:
         self.end = False
 
         # action definition
-        self.velocity = 40
+        self.velocity = 100
         self.direction = np.pi / 2
         self.action = [0]
-        for i in [2, 4]:
-            for j in [1, i-1, -1, -(i-1)]:
+        for i in [6, 4]:
+            for j in [1, -1]:
                 if j*np.pi/i not in self.action:
                     self.action.append(j*np.pi/i)
+
+
+        # Matplotlib bound variables
+        d_dir = 50*np.array([np.cos(self.direction), np.sin(self.direction)])
+        self.pos_d_dir = self.pos + d_dir
+        self.tr_orientation = self.direction - np.pi
         self.patches = self.init_patches()
+
 
 
     def reinit(self):
@@ -60,15 +67,19 @@ class Environment:
                     plt.Circle([x, y], self.place_field_radius[i], fill=True,
                                fc=[1, 1, 1, 0], ec=[0, 0, 0, 0.4])
                     for i, (x, y) in enumerate(self.kernels)})
-        patches['pos'] = mpatches.RegularPolygon(self.pos, 5, radius=10)
-        patches['goal'] = mpatches.RegularPolygon(self.goal, 4, radius=10, fc=(1, 0, 0))
         for i, wall in enumerate(self.walls):
-            patches['wall', i] = mpatches.Rectangle((wall[0], wall[1]), wall[2] - wall[0], wall[3] - wall[1])
+            patches['wall', i] = mpatches.Rectangle((wall[0], wall[1]), wall[2] - wall[0], wall[3] - wall[1], fc=[0, 0, 0])
+        patches['dir'] = mpatches.RegularPolygon(self.pos_d_dir, 3, orientation=self.tr_orientation, radius=30)
+        patches['pos'] = mpatches.Circle(self.pos, 50)
+        patches['goal'] = mpatches.RegularPolygon(self.goal, 5, radius=100, fc=(1, 0, 0))
         return patches
 
     def get_features(self):
         features = np.exp(-np.sum(np.power(self.pos - self.kernels, 2), axis=1)/(self.sigma2))
         features[np.linalg.norm(self.pos - self.kernels, axis=1) > self.place_field_radius] = 0
+        head_cells_kernels = np.linspace(-np.pi, np.pi, 10)
+        head_cells_features = np.exp(-np.power(self.direction - head_cells_kernels, 2)/0.5)
+        np.concatenate([features, head_cells_features], axis=0)
         return features
 
     def get_repr(self, features=None):
@@ -76,31 +87,32 @@ class Environment:
             features = self.get_features()
         for i, (x, y) in enumerate(self.kernels):
             self.patches[x, y].set_fc([0.5, 0.5, 1, features[i]*3/4])
-        self.patches['pos'].center = tuple(self.pos)
-        self.patches['goal'].center = tuple(self.goal)
+        d_dir = 50*np.array([np.cos(self.direction), np.sin(self.direction)])
+        self.tr_orientation += self.direction - np.pi - self.tr_orientation
+        self.pos_d_dir[0], self.pos_d_dir[1] = self.pos + d_dir # Prevent weird behaviour when id change for matplotlib, pos_d_dir is bound to the patch.
         collec = PatchCollection(self.patches.values(), match_original=True)
         return collec
 
     def do_action(self, action):
-        self.direction = action
+        self.direction += action
         noisy_dir = self.direction #+ np.random.normal(scale=np.pi/20)
         new_pos = self.pos + np.array([self.velocity * np.cos(noisy_dir),
                                        self.velocity * np.sin(noisy_dir)])
 
         if not (0 < new_pos[0] < self.W and 0 < new_pos[1] < self.H):
             np.clip(new_pos, [0, 0], [self.W, self.H], out=new_pos)
-            self.reward = -1
+            self.reward = 0
         elif self.in_walls(new_pos):
             new_pos = np.copy(self.pos)
-            self.reward = -1
+            self.reward = 0
         elif self.on_reward(new_pos):
-            self.reward = 1
+            self.reward = 10
             self.end = True
             new_pos = np.copy(self.start)
         else:
             self.reward = 0
 
-        self.pos[0] = new_pos[0]  # Prevent weird bug when id change for matplotlib
+        self.pos[0] = new_pos[0]  # Prevent weird behaviour when id change for matplotlib, pos is bound to the patch.
         self.pos[1] = new_pos[1]
 
         return self.get_features(), copy.copy(self.reward)
