@@ -10,7 +10,7 @@
 \usepackage{xifthen}
 \usepackage{soul}
 \usepackage[american]{babel}
-\usepackage[ruled,vline]{algorithm2e}
+\usepackage[ruled]{algorithm2e}
 
 \usepackage[backend=biber,style=apa]{biblatex}
 \addbibresource{DreamReplay.bib}
@@ -70,7 +70,7 @@
 
 \begin{abstract}
 % Première phrase trop proche de l'abstract de Gupta.
-On the neurobiology side, replays of behavioral sequences has been observed in the hippocampus during sharp wave ripples complexes and is thought to be a mechanism involed in memory consolidation and learning. On the computer science side, some reinforcement learning algorithms also use replays of behavioral sequences to improve the learning speed. One can ask if this algorithms behave in the same way that hippocampus replays of sequences, and if these algorithms can model the replay mechanisms observed in the hippocampus. For instance, can those algorithms explain why certain sequences are replayed instead of others? We'll show that that \bla{we'll see}.
+On the neurobiology side, replays of behavioral sequences have been observed in the hippocampus during sharp wave ripples complexes and is thought to be a mechanism involed in memory consolidation and learning. On the computer science side, some reinforcement learning algorithms also use replays of behavioral sequences to improve the learning speed. One can ask if this algorithms behave in the same way that hippocampus replays of sequences, and if these algorithms can model the replay mechanisms observed in the hippocampus. For instance, can those algorithms explain why certain sequences are replayed instead of others? We'll show that that \bla{we'll see}.
 \end{abstract}
 
 {
@@ -82,11 +82,35 @@ On the neurobiology side, replays of behavioral sequences has been observed in t
 
 \subsection{Reinforcement learning}\label{reinforcement-learning}
 
-Reinforcement Learning is a kind of learning mechanism where an agent tries to maximise a reward by doing some specific action in an environment \parencite{sutton_reinforcement_1998}. The environment is defined by \emph{states} in which the agent can be. The agent can be in one state at a time. In each state, the agent can do \emph{actions} from its repertoire. When doing a specific action in a specific state, the agent receives a \emph{reward}, which is a real. The reward can be positive or negative. The goal of the agent is to maximise the amount of reward it receives.
+Reinforcement Learning is a kind of learning mechanism where an agent tries to maximise a reward by doing some specific action in an environment \parencite{sutton_reinforcement_1998}. The environment is defined by set of \emph{states} (noted \(\mathcal{S}\)) in which the agent can be. In each state, the agent can do an \emph{action} from its \emph{action set} (noted \(\mathcal{A}\)). When doing a specific action \(a\) in a specific state \(s\), the agent receives a \emph{reward} (noted \(r\)) and go in a new state \(s'\in \mathcal{S}\). The reward is a number which can be positive or negative. The goal of the agent is to maximise the amount of reward it receives over time. The agent must do the best action in a given state to get the most reward in the long run. This mean that it might be worthful to go in a state which gives no reward if it can lead to new states that give a high reward. The table which links each state to an action is called a \emph{policy}. Reinforcement learning are methods to find the best policies in a given environment.
 
-To evaluate a state, the agent can estimate the \emph{value} of it. The value of a state is the expected reward the agent will receive if he is in this state plus the future rewards it can get from future states (with a discount factor).
+This kind of environment and task is called a \emph{Markov Reward Process}. This process can be used to model a wide variety of situation such as maze solving tasks or workload management \parencite{sutton_reinforcement_1998,vanseijen_deeper_2015}.
 
-\subsubsection{Notation}
+For instance, we can model experiences on rats who does maze solving task with markovian reward process. For instance, if we model a tree maze, each state is a node of the tree, the action of the rat is to take a edge. When it does so, he goes to another node (a new state), and receive the amount of food pellets in this node. Figure~\ref{fig:mdp_tree} shows an exemple of such maze. In this model, the goal of the rat is to eat as much food pellets as possible. The agent must maximise its amount of reward over time.
+
+\begin{figure}[htpb]
+  {\centering
+  \includegraphics[width=0.6\linewidth]{images/mdp_tree.png}
+  \caption{Exemple of an environment with states and rewards\label{fig:mdp_tree}}}
+  \small
+  Each number is the reward associated with the state. The goal of the agent is to maximise the amount of reward it gets in an episode. Therefore, he has to choose the action ``go left'' to get the 0, then choose ``go left'' again to get the 4.
+\end{figure}
+
+If the agent knows his environment perfectly, it is possible to find the best policy to maximise the amount of reward the agent gets in the long run analytically.
+
+To know if it is ``interesting'' to go into a state \(s\), the agent can compute the \emph{value} \(V_\pi\) of it. The value of a state is the expected reward the agent will receive if he is in this state plus the future rewards it can get from future states according to its policy \(\pi\). Rewards from future states are discounted by a coefficient \(\gamma\).
+
+\begin{equation}
+  V_\pi(s) = r_{s, a} + \gamma \sum_{a\in\mathcal{A}} \pi(s,a)\sum_{s'\in\mathcal{S}} P(s'|s, a) V(s')
+\end{equation}
+
+With complete knowledge of the rewards \(r\), the transition table of state according to an action (ie. the fact that I will be in \(s'\) if I do action \(a\) while in \(s\)), the value of every state can be computed according to the agent's policy. It is then possible to compute the best policy possible analytically or iteratively with Expectation-Maximisation (EM) algorithm \parencite{sutton_reinforcement_1998}.
+
+When the environment is not known by the agent, the value function cannot be computed and it must be approximated. The agent explore the environment and observe for each state the reward it gets, the next state it will be according to its action and update a value function approximation \(\tilde{V}_\pi\). Different methods such as Monte Carlo or Temporal Difference (TD) provide way to approximate \(V\). Then, the policy can be updated with an EM algorithm on \(\tilde{V}_\pi\) or use another policy improvement method.
+
+\subsection{Temporal Difference algorithm}
+
+The state the agent is in is noted \(s\), and the future state is noted \(s'\).
 
 \subsection{Learning by replay}\label{learning-by-replay}
 
@@ -172,7 +196,7 @@ We can model place cells in a reinforcement learning algorithm by using a tiling
 \subsection{What are the sequences that are replayed? How are they
 selected?}\label{what-are-the-sequences-that-are-replayed-how-are-they-selected}
 
-\textcite{gupta_hippocampal_2010} shows that the sequences that are replayed are not necessarly the most recent experiences. It shows also that the sequences that are replayed can be either forward or backward. In forward replays, the sequence is replayed in the same order as the sequence the rat has done. In backward replays, the sequence is done in the reverse order. What is the explanation for the selection of the sequence which is replayed, and its order? No criteria are proposed in \textcite{gupta_hippocampal_2010}. Yet, we can make interesting hypothesis knowing that \textcite{sutton_dyna-style_2012} suggests that there are very good samples to replay in a Dyna algorithm, and those sample are the sample where the difference between the expected value of a state and its real value is the greatest. It is consistant wit#h \textcite{gupta_hippocampal_2010} which states that the most common replays are the one that leads to the reward or comes from the reward.
+\textcite{gupta_hippocampal_2010} shows that the sequences that are replayed are not necessarly the most recent experiences. It shows also that the sequences that are replayed can be either forward or backward. In forward replays, the sequence is replayed in the same order as the sequence the rat has done. In backward replays, the sequence is done in the reverse order. What is the explanation for the selection of the sequence which is replayed, and its order? No criteria are proposed in \textcite{gupta_hippocampal_2010}. Yet, we can make interesting hypothesis knowing that \textcite{sutton_dyna-style_2012} suggests that there are very good samples to replay in a Dyna algorithm, and those sample are the sample where the difference between the expected value of a state and its real value is the greatest. It is consistant with \textcite{gupta_hippocampal_2010} which states that the most common replays are the one that leads to the reward or comes from the reward.
 
 \section{Method}\label{method}
 \begin{itemize}
