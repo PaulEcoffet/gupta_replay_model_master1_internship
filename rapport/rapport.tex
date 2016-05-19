@@ -110,31 +110,55 @@ When the environment is not known by the agent, the value function cannot be com
 
 \subsection{Temporal Difference algorithm}
 
-The state the agent is in is noted \(s\), and the future state is noted \(s'\).
+Temporal difference (TD) algorithms are methods that do not require a perfect knowledge of the environment. The TD(0) algorithm (Algorithm~\ref{alg:td0}) is the most basic TD learning algorithm. TD(0) algorithm computes an approximation of \(\tilde{V}_\pi\) after each action of the agent, using the equation~\ref{td_approx_v}.
+
+\begin{equation}
+  \hat{V}_\pi(s) = r + \gamma \tilde{V}_\pi(s')
+  \label{td_approx_v}
+\end{equation}
+
+The \(\hat{V}_\pi(s)\) which is computed takes only into account the next state \(s'\) the agent happens to be in after taking its action, and not all the possible outcomes as \(V_\pi(s)\) does. \(\tilde{V}_\pi(s)\) is updated slightly toward \(\hat{V}_\pi(s)\) so that in the long run, \(\tilde{V}_\pi(s)\) takes into account every outcome \(r\) and \(s'\) possible, according to their probability of occurence. To do so, a \emph{learning rate} parameter \(\alpha \in ]0, 1[\) is set, and \(\tilde{V}_\pi(s)\) is updated with the formula in equation~\ref{v_tilde_learning_rate}.
+
+\begin{equation}
+\tilde{V}_\pi(s) = \tilde{V}_\pi(s) + \alpha (\hat{V}_\pi(s) - \tilde{V}_\pi(s))
+\label{v_tilde_learning_rate}
+\end{equation}
+
+TD learning and reinforcement learning is fully covered in \textcite{sutton_reinforcement_1998}.
+
+\begin{algorithm}[htbp]
+  \DontPrintSemicolon
+  \SetAlgoNoLine
+  \KwIn{current \(\tilde{V}\) (usually \(\vec{0}\)), first state \(s\), policy \(\pi\), learning rate \(\alpha\), discount factor \(\gamma\)}
+  \KwOut{Updated \(\tilde{V}\)}
+  \While{s \textbf{is not} end}{
+    \(a \gets\) action according to \(\pi\) for \(s\)\;
+    Do \(a\), observe the reward \(r\) and the new state \(s'\)\;
+    \(\delta \gets r + \gamma \tilde{V}(s') - \tilde{V}(s)\)\;
+    \(\tilde{V}(s) \gets \tilde{V}(s) + \alpha \delta\)\;
+    \(s \gets s'\)\;
+  }
+  \caption{TD(0)  \label{alg:td0}}
+
+\end{algorithm}
+
+It is interesting to note that the Temporal Difference \(\delta\), which correspond to the error between the expected value of a state and the actual value observed (\(\hat{V}_\pi(s) - \tilde{V}_\pi(s)\)), has been correlated with the dopaminergic response of neurons by \textcite{hollerman_dopamine_1998}.
+
 
 \subsection{Learning by replay}\label{learning-by-replay}
 
 \subsubsection{In reinforcement learning}
 \label{sub:In reinforcement learning}
 
-Reinforcement learning methods like Q-learning or Sarsa converge slowly and need a lot of samples to be efficient. These algorithms, based on the TD(\textlambda) algorithm, use the sample once to improve their solution, then discard it \parencite{adam_experience_2012}.
+Reinforcement learning methods based on TD(0) like Sarsa or Q-Learning converge slowly and need a lot of samples to be efficient. These algorithms use the sample once to improve their solution, then discard it \parencite{adam_experience_2012}.
 
 To improve the efficiency of reinforcement learning methods, one solution is to replay past experiences. \textcite{vanseijen_deeper_2015} offers a good analysis about learning by replay. The goal of replay is to use the maximum of information an experience offers. Each sample is used several times using the current knowledge of the agent, improving the solution several times. Compared to TD(0), replay techniques give a better convergence to the optimal solution with the same number of experiences. Reinforcement learning methods using replay are more expensive than TD(\textlambda) both in memory and in computations, though the memory and computational power needed can be reduced a lot as \textcite{vanseijen_deeper_2015} shows.
 
-\begin{algorithm}[H]
-  \DontPrintSemicolon
-  \SetAlgoNoLine
-  \While{test}{
-    works\;
-  }
-  \caption{TD(0)}
-
-\end{algorithm}
 
 \subsubsection{Planning and replay?}
 \label{subs:Planning and replay}
 
-RL algorithms with planning use a model of their environment to infer the value  of a behaviour without actually doing it. The model is commonly a transition table between the possible states in the environment according to the action done by the agent. For exemple, if the agent has to solve a maze and has access to a transition table, then it can look up the table and know that if he is in the case \((3, 5)\) and it does the action ``go to the east'', it will be in \((3, 6)\).
+RL algorithms with planning use a model of their environment to infer the value  of a behaviour without actually doing it. The model is commonly a transition table between the possible states in the environment according to the action done by the agent. For exemple, if the agent has to solve a maze and has access to a transition table, then it can look up the table and know that if he is in the case \((3, 5)\) and it does the action ``go to the east'', it will be in \((3, 6)\), without actually doing the action.
 
 The model can be either directly accessible (given by the developer) or inferred by the agent. When the model is inferred, the agent builds explicitly the transition table according to the experiences he has in its environment. In this document, we will mainly talk about the Dyna algorithms. Dyna is a class of RL algorithms where the model is inferred by the agent. There is two phase during an iteration of Dyna. The first phase is when the agent interacts with its environment: it observes its state and reward, do an action according to its policy and go to the next state. It also updates its model of the environment according to this new experience. The second part is the \emph{planning} phase. During the planning phase, the agent improves its value function estimation with simulations according to its model: The agent generates a sample state, an experience, according to some rules (a probability distribution) and uses its model to compute the value of this sample thanks its model. Then, it updates its solution according to this simulation \parencite{sutton_dyna-style_2012}.
 It is interesting to note that the distribution used has no influence on whether the solution will converge or not, but has an influence on the speed of convergence. Therefore, choosing a good distribution can greatly improve the performance of Dyna. \textcite{sutton_dyna-style_2012} shows that choosing only already explored samples can have a good impact on performances. Therefore, Dyna can be efficient with a selection of already experienced samples, the planning phase is then a \emph{replay} phase.

@@ -113,7 +113,10 @@
            cy="307.36218"
            cx="105.00002"
            id="circle4165"
-           style="fill:#ffffff;stroke:#000000;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none" />
+           style="fill:#ffffff;stroke:#000000;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
+           inkscape:export-filename="/home/paul/Documents/stage/rapport/images/mdp_tree.png"
+           inkscape:export-xdpi="145"
+           inkscape:export-ydpi="145" />
         <flowRoot
            xml:space="preserve"
            id="flowRoot4195"
@@ -137,7 +140,10 @@
            cy="307.36218"
            cx="279.76193"
            id="circle4163"
-           style="fill:#ffffff;stroke:#000000;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none" />
+           style="fill:#ffffff;stroke:#000000;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
+           inkscape:export-filename="/home/paul/Documents/stage/rapport/images/mdp_tree.png"
+           inkscape:export-xdpi="145"
+           inkscape:export-ydpi="145" />
         <flowRoot
            transform="translate(185.04025,-10.594801)"
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:45px;line-height:125%;font-family:Saab;-inkscape-font-specification:Saab;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -161,7 +167,10 @@
            id="circle4159"
            cx="629.28577"
            cy="307.36218"
-           r="45" />
+           r="45"
+           inkscape:export-filename="/home/paul/Documents/stage/rapport/images/mdp_tree.png"
+           inkscape:export-xdpi="145"
+           inkscape:export-ydpi="145" />
         <flowRoot
            xml:space="preserve"
            id="flowRoot4215"
@@ -185,7 +194,10 @@
            id="circle4161"
            cx="454.52386"
            cy="307.36218"
-           r="45" />
+           r="45"
+           inkscape:export-filename="/home/paul/Documents/stage/rapport/images/mdp_tree.png"
+           inkscape:export-xdpi="145"
+           inkscape:export-ydpi="145" />
         <flowRoot
            xml:space="preserve"
            id="flowRoot4235"
@@ -212,7 +224,10 @@
            cy="489.32651"
            cx="541.90479"
            id="circle4157"
-           style="fill:#ffffff;stroke:#000000;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none" />
+           style="fill:#ffffff;stroke:#000000;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
+           inkscape:export-filename="/home/paul/Documents/stage/rapport/images/mdp_tree.png"
+           inkscape:export-xdpi="145"
+           inkscape:export-ydpi="145" />
         <flowRoot
            transform="translate(447.18311,171.36952)"
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:45px;line-height:125%;font-family:Saab;-inkscape-font-specification:Saab;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -235,7 +250,10 @@
            id="path3355"
            cx="192.38098"
            cy="489.32651"
-           r="45" />
+           r="45"
+           inkscape:export-filename="/home/paul/Documents/stage/rapport/images/mdp_tree.png"
+           inkscape:export-xdpi="145"
+           inkscape:export-ydpi="145" />
         <flowRoot
            transform="translate(98.834839,171.34755)"
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:45px;line-height:125%;font-family:Saab;-inkscape-font-specification:Saab;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -260,7 +278,10 @@
          id="circle4175"
          cx="367.14288"
          cy="671.29077"
-         r="45" />
+         r="45"
+         inkscape:export-filename="/home/paul/Documents/stage/rapport/images/mdp_tree.png"
+         inkscape:export-xdpi="145"
+         inkscape:export-ydpi="145" />
       <path
          inkscape:connection-end="#circle4175"
          inkscape:connection-start="#circle4175"
