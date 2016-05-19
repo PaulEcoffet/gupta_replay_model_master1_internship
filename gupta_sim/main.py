@@ -2,16 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
+import time
+import sys
+
 
 from environment import Environment
 from linear_dyna import ep_lindyn_mg
 
 def main():
-    env = Environment(150, 150)
+    env = Environment(100, 100)
     theta = np.zeros(env.nb_place_cells)
     F = np.zeros((len(env.action), env.nb_place_cells, env.nb_place_cells))
     b = np.ones((len(env.action), env.nb_place_cells))
-    episode = ep_lindyn_mg(env, theta, F, b, 2, 5, 400, True)
+    episode = ep_lindyn_mg(env, theta, F, b, 5, 1, 400, True)
     animate(env, episode)
 
 def animate(env, ep):
@@ -33,11 +36,15 @@ def animate(env, ep):
     ax.set_xlim([0, env.W])
 
     im_ani = animation.FuncAnimation(fig, true_animate, frames=16000,
-                                     blit=False, repeat=False, interval=50)
-    im_ani.save('vids/replay_2_per_day_5_days.mp4', codec="libx264",
-                writer=animation.FFMpegFileWriter(), fps=30, dpi=120, bitrate=-1,
-                extra_args=["-vcodec", "libx264"])
-    #plt.show()
+                                     blit=False, repeat=False, interval=30)
+    if sys.argv[0] == "vid":
+        print("video")
+        im_ani.save('vids/replay_1_per_day_5_days{}.mp4'.format(int(time.time())),
+                    codec="libx264", writer=animation.FFMpegFileWriter(),
+                    fps=30, bitrate=1000,
+                    extra_args=['-pix_fmt', 'yuv420p', '--verbose-debug'])
+    else:
+        plt.show()
     plt.close()
 
 main()
