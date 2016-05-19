@@ -90,6 +90,7 @@ target/
 *.fdb_latexmk
 *.fls
 *.bcf
+*.run.xml
 
 # Heavy files
-*.mp4
+# *.mp4
