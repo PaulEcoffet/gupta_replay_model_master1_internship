@@ -1,7 +1,6 @@
 import numpy as np
 from Queue import PriorityQueue
 
-INFTY = float("inf")
 
 gamma = 0.9
 alpha = 0.1
@@ -10,23 +9,29 @@ def softmax(score, tau, straight_bias=False): # Adapted from Minija Tamosiunaite
     exp_score = np.exp(score/tau)
     prob1 = exp_score/np.sum(exp_score)
     if straight_bias:
-        prob2 = np.array([0.5, 0.183, 0.183, 0.067, 0.067])  # Geometric sequence with u0 = 0.5, 2 * sum(u_i, i=1..(len(action)-1)/2) = 0.5
+        prob2 = np.array([0.5, 0.183, 0.183, 0.0665, 0.0665, 0.01])  # Geometric sequence with u0 = 0.5, 2 * sum(u_i, i=1..(len(action)-1)/2) = 0.5
+    else:
+        prob2 = prob1
     res = np.random.choice(len(score), p=0.5*prob1+0.5*prob2)
     #print(score, prob, res)
     return res
 
-def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, do_yield=False):
+def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, log=None):
     for day in range(nb_day):
         pqueue = PriorityQueue()
         for episode in range(nb_ep_per_day):
+            if log is not None:
+                log.append("session_begin")
             env.reinit()
             while not env.end:
                 phi = env.get_features()
-                q = np.array([0. for i in env.action]) # Q of Q-learning
-                for a in range(len(q)):
+                q = np.array([-np.inf for i in env.action]) # Q of Q-learning
+                for a in env.possible_actions():
                     q[a] = np.inner(b[a], phi) + gamma * np.dot(np.dot(theta.T, F[a]), phi)
-                a = softmax(q, 2, straight_bias=True)
+                a = softmax(q, 2, straight_bias=False)
                 phi_n, r = env.do_action(a)
+                if r > 0:
+                    print("happy")
 
                 delta = r + gamma * np.dot(theta.T, phi_n) - np.dot(theta.T, phi)
                 theta = theta + alpha * delta * phi
@@ -35,25 +40,27 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, do_yield=F
                 for i in range(len(phi)):
                     if phi[i] != 0:
                         pqueue.put((-np.abs(delta * phi[i]), i))
-                if do_yield:
-                    yield env.get_features()
+                if log is not None:
+                    log.append(env.get_features())
         # end of episode
-        print("sleeping")
+        if log is not None:
+            log.append("sleep")
         # Sleep
         p = replay_max # Number of replay max
         while not pqueue.empty() and p > 0:
             unused_prio, i = pqueue.get()
-            if do_yield:
-                yield np.array([0 if j != i else 1 for j in range(len(env.kernels))])
+            if log:
+                activation = np.zeros(env.pc.nb_place_cells)
+                activation[i] = 1
+                log.append(activation)
             for j in range(F.shape[2]):
                 if np.any(F[:, i, j] != 0):
-                    delta = -INFTY
+                    delta = -np.inf
                     for a in range(len(env.action)):
                         delta = np.max((delta, b[a][j] + gamma * np.dot(theta.T, F[a, :, j]))) - theta[j]
                     theta[j] = theta[j] + alpha * delta
                     pqueue.put((-np.abs(delta), j))
             p -= 1
-
-        #print (theta)
-        #print (F)
-    #return theta, b, F
+        if log is not None:
+            log.append("end")
+    return theta, b, F

@@ -4,18 +4,38 @@ from matplotlib import animation
 
 import time
 import sys
+import pickle
+import gzip
 
 
-from environment import Environment
+from environment import Environment, TrainingEnvironment, PlaceCells, TaskEnvironment
 from linear_dyna import ep_lindyn_mg
 
 def main():
-    env = Environment(100, 100)
-    theta = np.zeros(env.nb_place_cells)
-    F = np.zeros((len(env.action), env.nb_place_cells, env.nb_place_cells))
-    b = np.ones((len(env.action), env.nb_place_cells))
-    episode = ep_lindyn_mg(env, theta, F, b, 5, 1, 400, True)
-    animate(env, episode)
+    pc = PlaceCells(100, 100, 1000, 1000)
+    env = TrainingEnvironment('L', 20, pc)
+    theta = np.zeros(pc.nb_place_cells)
+    F = np.zeros((len(env.action), pc.nb_place_cells, pc.nb_place_cells))
+    b = np.zeros((len(env.action), pc.nb_place_cells))
+    log = []
+    theta, b, F = ep_lindyn_mg(env, theta, F, b, 2, 1, 300)
+    env = TrainingEnvironment('R', 20, pc)
+    theta, b, F = ep_lindyn_mg(env, theta, F, b, 2, 1, 300)
+    env = TaskEnvironment('R', 10, pc)
+    theta, b, F = ep_lindyn_mg(env, theta, F, b, 3, 1, 300, log)
+    with gzip.open('log_{}.pklz'.format(int(time.time())), 'wb') as f:
+        pickle.dump({'log': log, 'theta':theta, 'b': b, 'F': F, 'env': env}, f)
+    intersting = []
+    sleep = False
+    for elem in log:
+        if isinstance(elem, str) and elem == "end":
+            sleep = False
+        if sleep:
+            intersting.append(elem)
+        if isinstance(elem, str) and elem == "sleep":
+            sleep = True
+    print(len(intersting))
+    animate(env, iter(intersting))
 
 def animate(env, ep):
     prev_res = None
@@ -23,6 +43,9 @@ def animate(env, ep):
     def true_animate(value):
         try:
             features = next(ep)
+            while isinstance(features, str):
+                print(features)
+                features = next(ep)
         except StopIteration:
             pass
         else:
