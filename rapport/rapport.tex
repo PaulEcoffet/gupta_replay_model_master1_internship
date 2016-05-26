@@ -106,7 +106,7 @@ To know if it is ``interesting'' to go into a state \(s\), the agent can compute
 
 With complete knowledge of the rewards \(r\), the transition table of state according to an action (ie. the fact that I will be in \(s'\) if I do action \(a\) while in \(s\)), the value of every state can be computed according to the agent's policy. It is then possible to compute the best policy possible analytically or iteratively with Expectation-Maximisation (EM) algorithm \parencite{sutton_reinforcement_1998}.
 
-When the environment is not known by the agent, the value function cannot be computed and it must be approximated. The agent explore the environment and observe for each state the reward it gets, the next state it will be according to its action and update a value function approximation \(\tilde{V}_\pi\). Different methods such as Monte Carlo or Temporal Difference (TD) provide way to approximate \(V\). Then, the policy can be updated with an EM algorithm on \(\tilde{V}_\pi\) or use another policy improvement method.
+When the environment is not known by the agent, the value function cannot be computed and it must be approximated. The agent explore the environment and observe for each state the reward it gets, the next state it will be according to its action and update a value function approximation \(\tilde{V}_\pi\). Different methods such as Monte Carlo or Temporal Difference (TD) provide way to approximate \(V\). Then, the policy can be updated with an EM algorithm on \(\tilde{V}_\pi\) or use another policy improvement method. \cite{,,}
 
 \subsection{Temporal Difference algorithm}
 
@@ -138,7 +138,7 @@ TD learning and reinforcement learning is fully covered in \textcite{sutton_rein
     \(\tilde{V}(s) \gets \tilde{V}(s) + \alpha \delta\)\;
     \(s \gets s'\)\;
   }
-  \caption{TD(0)  \label{alg:td0}}
+  \caption{Canonical TD(0)  \label{alg:td0}}
 
 \end{algorithm}
 
@@ -154,13 +154,89 @@ Reinforcement learning methods based on TD(0) like Sarsa or Q-Learning converge 
 
 To improve the efficiency of reinforcement learning methods, one solution is to replay past experiences. \textcite{vanseijen_deeper_2015} offers a good analysis about learning by replay. The goal of replay is to use the maximum of information an experience offers. Each sample is used several times using the current knowledge of the agent, improving the solution several times. Compared to TD(0), replay techniques give a better convergence to the optimal solution with the same number of experiences. Reinforcement learning methods using replay are more expensive than TD(\textlambda) both in memory and in computations, though the memory and computational power needed can be reduced a lot as \textcite{vanseijen_deeper_2015} shows.
 
+\textcite{vanseijen_deeper_2015} give a canonical TD(0) algorithm with replay. This algorithm puts in a list \(\mathcal{M}\) all the states, reward and transition the agent have observed at each step. After each action, the algorithm use the new value function estimation it has to replay previous states to compute from the beginning of the experience a new value function estimation given these previous states (in \(\mathcal{M}\)) and the current knowledge it has (\(\tilde{V}_\pi\)).
+
+Note that starting from now, I will no longer use \(\pi\) as an indice for the value function to thow that the value function depends on the policy \(\pi\), but I will put as indice the time step at which the estimation has been done. \(\tilde{V}_4\) correspond to the estimation of the value function the algorithm gets after its forth action (of course, according to a policy \(\pi\)). It is also understated that \(\tilde{V}_{t+1} = \tilde{V}_{t}\) for every state except from the one for whom the function has been updated.
+
+The example of computation of \(\tilde{V}_\pi\) using replay proposed by \textcite{vanseijen_deeper_2015} is given in equations~\ref{ex_eq_td0}~and~\ref{ex_eq_td0_replay}. Equation~\ref{ex_eq_td0} shows the updates of a canonical TD(0) algorithm, as in algorithm~\ref{alg:td0}.
+
+\begin{equation}
+  \begin{aligned}
+    \tilde{V}_{1}(s_0) &\gets \tilde{V}_0(s_0) + \alpha (r_1 + \gamma \tilde{V}_0(s_1) - \tilde{V}_0(s_0))\\
+    \tilde{V}_{2}(s_1) &\gets \tilde{V}_1(s_1) + \alpha (r_2 + \gamma \tilde{V}_1(s_2) - \tilde{V}_1(s_1))\\
+    \tilde{V}_{3}(s_2) &\gets \tilde{V}_2(s_2) + \alpha (r_3 + \gamma \tilde{V}_2(s_3) - \tilde{V}_2(s_2))\\
+  \end{aligned}
+  \label{ex_eq_td0}
+\end{equation}
+
+The idea of replay is to use the knowledge got after some time. For instance, let \(\tilde{V}_* = \tilde{V}_3\). Then, it is possible to compute a new estimate of the value function from scratch using this knowledge and past experiences:
+
+\begin{equation}
+  \begin{aligned}
+    \tilde{V}_{1}'(s_0) &\gets \tilde{V}_0(s_0) + \alpha (r_1 + \gamma \tilde{V}_*(s_1) - \tilde{V}_0(s_0))\\
+    \tilde{V}_{2}'(s_1) &\gets \tilde{V}_1'(s_1) + \alpha (r_2 + \gamma \tilde{V}_*(s_2) - \tilde{V}_1'(s_1))\\
+    \tilde{V}_3'(s_2) &\gets \tilde{V}_2'(s_2) + \alpha (r_3 + \gamma \tilde{V}_*(s_3) - \tilde{V}_2'(s_2))\\
+  \end{aligned}
+  \label{ex_eq_td0_replay}
+\end{equation}
+
+\(\tilde{V}'\) is reasonably more accurate that \(\tilde{V}\), as stated by \textcite{vanseijen_deeper_2015}. Using the same method, \(\tilde{V}''\) can be computed using the same method and with \(\tilde{V}_* = \tilde{V}'_3\) and so on, depending of the computational budget of the algorithm. The algorithm~\ref{alg:td0_replay} can therefore be constructed \parencite{vanseijen_deeper_2015}.
+
+\begin{algorithm}[htbp]
+  \DontPrintSemicolon
+  \SetAlgoNoLine
+  \KwIn{\(\tilde{V}_{init}\) (usually \(\vec{0}\)), first state \(s\), policy \(\pi\), learning rate \(\alpha\), discount factor \(\gamma\), computational budget \(k\)}
+  \KwOut{Updated \(\tilde{V}\)}
+  \(\tilde{V} \gets \tilde{V}_{init}\)\;
+  \(\mathcal{M} \gets \emptyset\) \tcp{The list of observed samples}
+  \While{s \textbf{is not} end}{
+    \(a \gets\) action according to \(\pi\) for \(s\)\;
+    Do \(a\), observe the reward \(r\) and the new state \(s'\)\;
+    append \((s, r, s')\) to \(\mathcal{M}\)\;
+    \For{\(i \gets 1\) to \(k\)}{
+      \(\tilde{V}_* \gets \tilde{V}\)\;
+      \(\tilde{V} \gets \tilde{V}_{init}\)\;
+      \ForEach{\((s, r, s') \in \mathcal{M}\) (from oldest to newest)}{
+        \(\delta \gets r + \gamma \tilde{V}_*(s') - \tilde{V}(s)\)\;
+        \(\tilde{V}(s) \gets \tilde{V}(s) + \alpha \delta\)\;
+      }
+    }
+    \(s \gets s'\)\;
+  }
+  \caption{TD(0) with Replay \label{alg:td0_replay}}
+
+\end{algorithm}
 
 \subsubsection{Planning and replay?}
 \label{subs:Planning and replay}
 
-RL algorithms with planning use a model of their environment to infer the value  of a behaviour without actually doing it. The model is commonly a transition table between the possible states in the environment according to the action done by the agent. For exemple, if the agent has to solve a maze and has access to a transition table, then it can look up the table and know that if he is in the case \((3, 5)\) and it does the action ``go to the east'', it will be in \((3, 6)\), without actually doing the action.
+RL algorithms with planning use a model of their environment to infer the value  of a behaviour without actually doing it. The model is commonly a transition table between the possible states in the environment according to the action done by the agent. For exemple, if the agent has to solve a maze and has access to a transition table, then it can look up the table and know that if he is in the case \((3, 5)\) and it does the action ``go to the east'', it will be in \((4, 5)\), without actually doing the action.
 
-The model can be either directly accessible (given by the developer) or inferred by the agent. When the model is inferred, the agent builds explicitly the transition table according to the experiences he has in its environment. In this document, we will mainly talk about the Dyna algorithms. Dyna is a class of RL algorithms where the model is inferred by the agent. There is two phase during an iteration of Dyna. The first phase is when the agent interacts with its environment: it observes its state and reward, do an action according to its policy and go to the next state. It also updates its model of the environment according to this new experience. The second part is the \emph{planning} phase. During the planning phase, the agent improves its value function estimation with simulations according to its model: The agent generates a sample state, an experience, according to some rules (a probability distribution) and uses its model to compute the value of this sample thanks its model. Then, it updates its solution according to this simulation \parencite{sutton_dyna-style_2012}.
+The model can be either directly accessible (given by the developer) or inferred by the agent. When the model is inferred, the agent builds explicitly the transition table according to the experiences he has in its environment. In this document, we will mainly talk about the Dyna algorithms. Dyna is a class of RL algorithms where the model is inferred by the agent. There is two phase during an iteration of Dyna. The first phase is when the agent interacts with its environment: it observes its state and reward, do an action according to its policy and go to the next state. It also updates its model of the environment according to this new experience. The second part is the \emph{planning} phase. During the planning phase, the agent improves its value function estimation with simulations according to its model: The agent generates a sample state, an experience, according to some rules (a probability distribution) and uses its model to compute the value of this sample thanks its model. Then, it updates its solution according to this simulation \parencite{sutton_dyna-style_2012}. Algorithm~\ref{alg:canonical_dyna} from \textcite{sutton_dyna-style_2012} is the canonical form of a Dyna algorithm. In this algorithm and next algorithms,
+
+\begin{algorithm}[htbp]
+  \DontPrintSemicolon
+  \SetAlgoNoLine
+  \KwIn{\(\theta_{init}\) (usually \(\vec{0}\)), first features vector \(\phi\), policy \(\pi\), learning rate \(\alpha\), discount factor \(\gamma\), computational budget \(k\)}
+  \KwOut{Updated \(\tilde{\theta}\)}
+  \(\theta \gets \theta_{init}\)\;
+  \While{\textbf{not} end}{
+    \(a \gets\) action according to \(\pi\) for \(\phi\)\;
+    Do \(a\), observe the reward \(r\) and the new state \(\phi'\)\;
+    \tcp{******compute F and b******}
+    \For{\(i \gets 1\) to \(k\)}{
+      Generate a sample \(\phi\) from distribution \(\mu\)\;
+      \(\phi' \gets F\phi\)\;
+      \(r \gets b^\top\phi\)\;
+      \(\delta \gets r + \gamma \tilde{V}_*(s') - \tilde{V}(s)\)\;
+      \(\tilde{V}(s) \gets \tilde{V}(s) + \alpha \delta\)\;
+    }
+    \(s \gets s'\)\;
+  }
+  \caption{Canonical Linear Dyna \label{alg:canonical_dyna}}
+
+\end{algorithm}
+
 It is interesting to note that the distribution used has no influence on whether the solution will converge or not, but has an influence on the speed of convergence. Therefore, choosing a good distribution can greatly improve the performance of Dyna. \textcite{sutton_dyna-style_2012} shows that choosing only already explored samples can have a good impact on performances. Therefore, Dyna can be efficient with a selection of already experienced samples, the planning phase is then a \emph{replay} phase.
 
 \textcite{vanseijen_deeper_2015} highlights even more the strong similarity between RL methods using replay and RL methods using planning. First of all, both of them can be considered as model-based algorithms. Indeed, planning methods using an inferred model use an integrated version of samples experienced over time, thus they are by definition model-based algorithms.
