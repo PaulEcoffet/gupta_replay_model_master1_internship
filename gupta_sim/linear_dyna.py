@@ -1,3 +1,6 @@
+# -*- coding: utf8 -*-
+
+
 import numpy as np
 from Queue import PriorityQueue
 
@@ -5,7 +8,15 @@ from Queue import PriorityQueue
 gamma = 0.9
 alpha = 0.1
 
-def softmax(score, tau, straight_bias=False): # Adapted from Minija Tamosiunaite et al. (2008)
+def softmax(score, tau, straight_bias=False):
+    """
+    get what action to do with a combination of a softmax and a straight bias
+    adapted from Minija Tamosiunaite et al. (2008) if `straight_bias` is True.
+
+    Note that I no longer use a straight bias which lead to weird behaviours and
+    I train the agent in a TrainingEnvironment instead which is way better.
+    The TrainingEnvironment was also used in Gupta et al. (2010)
+    """
     exp_score = np.exp(score/tau)
     prob1 = exp_score/np.sum(exp_score)
     if straight_bias:
@@ -17,6 +28,32 @@ def softmax(score, tau, straight_bias=False): # Adapted from Minija Tamosiunaite
     return res
 
 def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, log=None):
+    """
+    Does a linear dyna variation from Sutton et al. (2012) with replay.
+
+    env - The environment to use
+    theta - The weight vector to compute V(Phi)
+    F - The transition table from Phi to Phi'
+    b - A reward matrix which gives for each values of phi and an action the
+        expected reward. For instance, if the 32 place cell is at the center of
+        the environment, and action 8 is "going south", then because it's
+        forbidden to go south at the center of the enviroment, b[32][8] will
+        converge to -10. b is somewhat the Q(s, a) matrix.
+    nb_day - number of "days" before ending the training. Days can also be
+             understood as the number of replay sessions.
+    nb_ep_per_day - number of time to do the task before going into "sleep mode".
+                    The task is done `nb_day` * `nb_ep_per_day` in total.
+    replay_max - Number of experienced feature activations to replay before
+                 waking up.
+    log - A list in which every place cells activation is recorded, along with
+          the position of the agent and the position of the goal. While the
+          agent sleeps, only the feature which is reactivated is logged.
+
+    See Sutton et al. 2012 Dyna-Style Planning with Linear Function
+    Approximation and Prioritized Sweeping for details about the algorithm (it
+    is the algorithm 3 in the article). I have only moved the replay part so
+    that it is not done after each step.
+    """
     for day in range(nb_day):
         pqueue = PriorityQueue()
         for episode in range(nb_ep_per_day):
