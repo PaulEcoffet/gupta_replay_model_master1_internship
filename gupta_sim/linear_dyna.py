@@ -33,7 +33,7 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, log=None):
 
     env - The environment to use
     theta - The weight vector to compute V(Phi)
-    F - The transition table from Phi to Phi'
+    F - The transition tables from Phi to Phi', one per action
     b - A reward matrix which gives for each values of phi and an action the
         expected reward. For instance, if the 32 place cell is at the center of
         the environment, and action 8 is "going south", then because it's
@@ -63,7 +63,7 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, log=None):
             while not env.end:
                 phi = env.get_features()
                 q = np.array([-np.inf for i in env.action]) # Q of Q-learning
-                for a in env.possible_actions():
+                for a in env.possible_actions():  # The impossible actions stay to -inf
                     q[a] = np.inner(b[a], phi) + gamma * np.dot(np.dot(theta.T, F[a]), phi)
                 a = softmax(q, 2, straight_bias=False)
                 phi_n, r = env.do_action(a)
