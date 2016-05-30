@@ -12,17 +12,28 @@ from environment import Environment, TrainingEnvironment, PlaceCells, TaskEnviro
 from linear_dyna import ep_lindyn_mg
 
 def main():
-    pc = PlaceCells(100, 100, 1000, 1000)
+    pc = PlaceCells(200, 100, 2000, 1000)
+
+    print("entrainement gauche")
     env = TrainingEnvironment('L', 20, pc)
     theta = np.zeros(pc.nb_place_cells)
     F = np.zeros((len(env.action), pc.nb_place_cells, pc.nb_place_cells))
     b = np.zeros((len(env.action), pc.nb_place_cells))
     log = []
-    theta, b, F = ep_lindyn_mg(env, theta, F, b, 2, 1, 300)
+    theta, b, F = ep_lindyn_mg(env, theta, F, b, 7, 1, 300)
+
+    print("entrainement droite")
     env = TrainingEnvironment('R', 20, pc)
-    theta, b, F = ep_lindyn_mg(env, theta, F, b, 2, 1, 300)
+    theta, b, F = ep_lindyn_mg(env, theta, F, b, 7, 1, 300)
+
+    print("tache")
+    env = TaskEnvironment('L', 10, pc)
+    theta, b, F = ep_lindyn_mg(env, theta, F, b, 1, 1, 300, log)
     env = TaskEnvironment('R', 10, pc)
-    theta, b, F = ep_lindyn_mg(env, theta, F, b, 3, 1, 300, log)
+    theta, b, F = ep_lindyn_mg(env, theta, F, b, 1, 1, 300, log)
+    env = TaskEnvironment('L', 10, pc)
+    theta, b, F = ep_lindyn_mg(env, theta, F, b, 1, 1, 300, log)
+    print("fin")
     with gzip.open('log_{}.pklz'.format(int(time.time())), 'wb') as f:
         pickle.dump({'log': log, 'theta':theta, 'b': b, 'F': F, 'env': env}, f)
     intersting = []
@@ -34,32 +45,32 @@ def main():
             intersting.append(elem)
         if isinstance(elem, str) and elem == "sleep":
             sleep = True
-    print(len(intersting))
-    animate(env, iter(intersting))
+    animate(env, iter(log))
 
 def animate(env, ep):
-    prev_res = None
-
     def true_animate(value):
         try:
-            features = next(ep)
-            while isinstance(features, str):
-                print(features)
-                features = next(ep)
+            info = next(ep)
+            while isinstance(info, str):
+                print(info)
+                info = next(ep)
         except StopIteration:
             pass
         else:
+            features = info[0]
+            pos = info[1]
+            goal = info[2]
             ax.clear()
-            res = ax.add_collection(env.get_repr(features))
+            ax.add_collection(env.get_repr(features, pos, goal))
         return [],
+
 
     fig = plt.figure(figsize=(7, 7))
     ax = fig.gca()
     ax.set_ylim([0, env.H])
     ax.set_xlim([0, env.W])
-
     im_ani = animation.FuncAnimation(fig, true_animate, frames=16000,
-                                     blit=False, repeat=False, interval=30)
+                                     blit=False, repeat=False, interval=16)
     if sys.argv[0] == "vid":
         print("video")
         im_ani.save('vids/replay_1_per_day_5_days{}.mp4'.format(int(time.time())),
@@ -68,6 +79,22 @@ def animate(env, ep):
                     extra_args=['-pix_fmt', 'yuv420p', '--verbose-debug'])
     else:
         plt.show()
-    plt.close()
+
+def play_ep():
+    with gzip.open('log_{}.pklz'.format(1464356873), 'rb') as f:
+        a = pickle.load(f)
+    log = a['log']
+    env = a['env']
+    env.patches = env.init_patches()
+    intersting = []
+    sleep = False
+    for elem in log:
+        if isinstance(elem, str) and elem == "end":
+            sleep = False
+        if sleep:
+            intersting.append(elem)
+        if isinstance(elem, str) and elem == "sleep":
+            sleep = True
+    animate(env, iter(log))
 
 main()

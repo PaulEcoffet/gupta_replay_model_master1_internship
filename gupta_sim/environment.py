@@ -10,7 +10,7 @@ from matplotlib import animation
 from matplotlib.collections import Collection, PatchCollection
 
 
-class PlaceCells():
+class PlaceCells(object):
     def __init__(self, nb_place_cells, place_field_radius, W, H, seed=None):
         if seed is not None:
             np.random.seed(seed)
@@ -26,7 +26,7 @@ class PlaceCells():
 class Environment(object):
     def __init__(self, place_cells, seed=None):
         self.H = 1000
-        self.W = 1000
+        self.W = 2000
 
         # Init definition
         self.pc = place_cells
@@ -46,6 +46,8 @@ class Environment(object):
         # Matplotlib bound variables
         d_dir = 50 * np.array([np.cos(self.direction), np.sin(self.direction)])
         self.pos_d_dir = self.pos + d_dir
+        self.visual_pos = np.copy(self.pos)
+        self.visual_goal = np.copy(self.goals[0])
         self.tr_orientation = self.direction - np.pi
         self.patches = self.init_patches()
 
@@ -66,8 +68,8 @@ class Environment(object):
         for i, wall in enumerate(self.walls):
             patches['wall', i] = mpatches.Rectangle((wall[0], wall[1]), wall[2] - wall[0], wall[3] - wall[1], fc=[0, 0, 0])
         patches['dir'] = mpatches.RegularPolygon(self.pos_d_dir, 3, orientation=self.tr_orientation, radius=30)
-        patches['pos'] = mpatches.Circle(self.pos, 50)
-        patches['goal'] = mpatches.RegularPolygon(self.goals[0], 5, radius=100, fc=(1, 0, 0))
+        patches['pos'] = mpatches.Circle(self.visual_pos, 50)
+        patches['goal'] = mpatches.RegularPolygon(self.visual_goal, 5, radius=100, fc=(1, 0, 0))
         return patches
 
     def get_features(self):
@@ -78,14 +80,20 @@ class Environment(object):
         #np.concatenate([features, head_cells_features], axis=0)
         return features
 
-    def get_repr(self, features=None):
+    def get_repr(self, features=None, pos=None, goal=None):
         if features is None:
             features = self.get_features()
+        if pos is None:
+            pos = self.pos
+        if goal is None:
+            goal = self.goals[0]
         for i, (x, y) in enumerate(self.pc.kernels):
             self.patches[x, y].set_fc([0.5, 0.5, 1, features[i]*3/4])
         d_dir = 50*np.array([np.cos(self.direction), np.sin(self.direction)])
         self.tr_orientation += self.direction - np.pi - self.tr_orientation
-        self.pos_d_dir[0], self.pos_d_dir[1] = self.pos + d_dir # Prevent weird behaviour when id change for matplotlib, pos_d_dir is bound to the patch.
+        self.pos_d_dir[0], self.pos_d_dir[1] = pos + d_dir # Prevent weird behaviour when id change for matplotlib, pos_d_dir is bound to the patch.
+        self.visual_pos[0], self.visual_pos[1] = pos
+        self.visual_goal[0], self.visual_goal[1] = goal
         collec = PatchCollection(self.patches.values(), match_original=True)
         return collec
 
@@ -101,7 +109,7 @@ class Environment(object):
 
     def trigger_reward(self, prev_pos, new_pos, a):
         for i, goal in enumerate(self.goals):
-            if np.linalg.norm(new_pos - goal) < 100:
+            if np.linalg.norm(new_pos - goal) < 140:
                 print("yummi")
                 self.goals[i] = np.array([-1000, -1000])
                 self.end = True
@@ -157,12 +165,12 @@ class TrainingEnvironment(Environment):
     def __init__(self, side, max_turn, place_cells, seed=None):
         super(self.__class__, self).__init__(place_cells)
         if side == "R":
-            self.walls = [[int(0.2 * self.W), int(1.0 * self.H), int(0.4 * self.W), int(0.0 * self.H)],
-                          [int(0.6 * self.W), int(0.8 * self.H), int(0.8 * self.W), int(0.2 * self.H)]]
+            self.walls = [[int(0.1 * self.W), int(1.0 * self.H), int(0.45 * self.W), int(0.0 * self.H)],
+                          [int(0.55 * self.W), int(0.8 * self.H), int(0.9 * self.W), int(0.2 * self.H)]]
             self.goals_init = [np.array([0.9*self.W, 0.9*self.H])]
         else:
-            self.walls = [[int(0.2 * self.W), int(0.8 * self.H), int(0.4 * self.W), int(0.2 * self.H)],
-                          [int(0.6 * self.W), int(1.0 * self.H), int(0.8 * self.W), int(0.0 * self.H)]]
+            self.walls = [[int(0.1 * self.W), int(0.8 * self.H), int(0.45 * self.W), int(0.2 * self.H)],
+                          [int(0.55 * self.W), int(1.0 * self.H), int(0.8 * self.W), int(0.0 * self.H)]]
             self.goals_init = [np.array([0.1*self.W, 0.9*self.H])]
         self.patches = super(self.__class__, self).init_patches()
         self.nb_exp = 0
@@ -170,36 +178,37 @@ class TrainingEnvironment(Environment):
 
     def trigger_reward(self, prev_pos, new_pos, a):
         self.reward = 0
-        if self.in_rect(prev_pos, 0.4, 0.6, 0.2, 0.8):  ## Punish if going backward
+        if self.in_rect(prev_pos, 0.45, 0.55, 0.0, 0.8):  ## Punish if going backward
             good_dir = np.array([0, 1])
-        elif self.in_rect(prev_pos, 0.2, 0.4, 0.8, 1.0) or self.in_rect(prev_pos, 0.6, 0.8, 0.0, 0.2):
+        elif self.in_rect(prev_pos, 0.1, 0.45, 0.8, 1.0) or self.in_rect(prev_pos, 0.55, 1, 0.0, 0.2):
             good_dir = np.array([-1, 0])
-        elif self.in_rect(prev_pos, 0.6, 0.8, 0.8, 1.0) or self.in_rect(prev_pos, 0.2, 0.4, 0.0, 0.2):
+        elif self.in_rect(prev_pos, 0.55, 0.9, 0.8, 1.0) or self.in_rect(prev_pos, 0, 0.45, 0.0, 0.2):
             good_dir = np.array([1, 0])
-        elif self.in_rect(prev_pos, 0.8, 1, 0.2, 0.8) or self.in_rect(prev_pos, 0.0, 0.2, 0.2, 0.8):
+        elif self.in_rect(prev_pos, 0.9, 1, 0.2, 1) or self.in_rect(prev_pos, 0.0, 0.1, 0.2, 1):
             good_dir = np.array([0, -1])
         else:
             good_dir = None
-        if good_dir is not None and np.dot(new_pos - prev_pos, good_dir) <= 0:
+        if good_dir is not None and np.dot(new_pos - prev_pos, good_dir) < 0:
             self.reward = -10
+            new_pos[0] = prev_pos[0]
+            new_pos[1] = prev_pos[1]
         if self.on_start(self.pos):
             self.goals = copy.deepcopy(self.goals_init)
         for i, goal in enumerate(self.goals):
-            if np.linalg.norm(new_pos - goal) < 100:
+            if np.linalg.norm(new_pos - goal) < 140:
                 print("yummi")
                 self.goals[i] = np.array([-1000, -1000])
                 self.nb_exp += 1
                 if self.nb_exp == self.max_turn:
                     self.nb_exp = 0
                     self.end = True
-                #self.reward = 1
 
 
 class TaskEnvironment(Environment):
     def __init__(self, side, max_turn, place_cells, seed=None):
         super(self.__class__, self).__init__(place_cells)
-        self.walls = [[int(0.2 * self.W), int(0.8 * self.H), int(0.4 * self.W), int(0.2 * self.H)],
-                      [int(0.6 * self.W), int(0.8 * self.H), int(0.8 * self.W), int(0.2 * self.H)]]
+        self.walls = [[int(0.1 * self.W), int(0.8 * self.H), int(0.45 * self.W), int(0.2 * self.H)],
+                      [int(0.55 * self.W), int(0.8 * self.H), int(0.9 * self.W), int(0.2 * self.H)]]
         if side == 'R':
             self.goals_init = [np.array([0.9*self.W, 0.9*self.H])]
         else:
@@ -211,22 +220,24 @@ class TaskEnvironment(Environment):
     def trigger_reward(self, prev_pos, new_pos, a):
         ### KEEP THE PUNITION IF BACKWARD TO PREVENT SURPRISE
         self.reward = 0
-        if self.in_rect(prev_pos, 0.4, 0.6, 0.0, 0.8):  ## Punish if going backward
+        if self.in_rect(prev_pos, 0.45, 0.55, 0.0, 0.8):  ## Punish if going backward
             good_dir = np.array([0, 1])
-        elif self.in_rect(prev_pos, 0.2, 0.4, 0.8, 1.0) or self.in_rect(prev_pos, 0.6, 1.0, 0.0, 0.2):
+        elif self.in_rect(prev_pos, 0.1, 0.45, 0.8, 1.0) or self.in_rect(prev_pos, 0.55, 1, 0.0, 0.2):
             good_dir = np.array([-1, 0])
-        elif self.in_rect(prev_pos, 0.6, 0.8, 0.8, 1.0) or self.in_rect(prev_pos, 0.0, 0.4, 0.0, 0.2):
+        elif self.in_rect(prev_pos, 0.55, 0.9, 0.8, 1.0) or self.in_rect(prev_pos, 0, 0.45, 0.0, 0.2):
             good_dir = np.array([1, 0])
-        elif self.in_rect(prev_pos, 0.8, 1, 0.2, 1) or self.in_rect(prev_pos, 0.0, 0.2, 0.2, 1):
+        elif self.in_rect(prev_pos, 0.9, 1, 0.2, 1) or self.in_rect(prev_pos, 0.0, 0.1, 0.2, 1):
             good_dir = np.array([0, -1])
         else:
             good_dir = None
-        if good_dir is not None and np.dot(new_pos - prev_pos, good_dir) <= 0:
-            self.reward = -1
+        if good_dir is not None and np.dot(new_pos - prev_pos, good_dir) < 0:
+            self.reward = -10
+            new_pos[0] = prev_pos[0]
+            new_pos[1] = prev_pos[1]
         if self.on_start(self.pos):
             self.goals = copy.deepcopy(self.goals_init)
         for i, goal in enumerate(self.goals):
-            if np.linalg.norm(new_pos - goal) < 100:
+            if np.linalg.norm(new_pos - goal) < 140:
                 print("yummi")
                 self.goals[i] = np.array([-1000, -1000])
                 self.nb_exp += 1

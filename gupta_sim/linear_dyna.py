@@ -30,8 +30,6 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, log=None):
                     q[a] = np.inner(b[a], phi) + gamma * np.dot(np.dot(theta.T, F[a]), phi)
                 a = softmax(q, 2, straight_bias=False)
                 phi_n, r = env.do_action(a)
-                if r > 0:
-                    print("happy")
 
                 delta = r + gamma * np.dot(theta.T, phi_n) - np.dot(theta.T, phi)
                 theta = theta + alpha * delta * phi
@@ -40,8 +38,9 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, log=None):
                 for i in range(len(phi)):
                     if phi[i] != 0:
                         pqueue.put((-np.abs(delta * phi[i]), i))
+
                 if log is not None:
-                    log.append(env.get_features())
+                    log.append([env.get_features(), np.copy(env.pos), np.copy(env.goals[0])])
         # end of episode
         if log is not None:
             log.append("sleep")
@@ -49,10 +48,10 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, log=None):
         p = replay_max # Number of replay max
         while not pqueue.empty() and p > 0:
             unused_prio, i = pqueue.get()
-            if log:
+            if log is not None:
                 activation = np.zeros(env.pc.nb_place_cells)
                 activation[i] = 1
-                log.append(activation)
+                log.append([activation, None, None])
             for j in range(F.shape[2]):
                 if np.any(F[:, i, j] != 0):
                     delta = -np.inf
