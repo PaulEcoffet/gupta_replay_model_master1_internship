@@ -39,8 +39,8 @@ class PlaceCells(object):
             np.random.seed(seed)
         self.nb_place_cells = nb_place_cells
         row = int(np.sqrt(nb_place_cells))
-        self.kernels = np.array([((i%row) * W/row + np.random.randint(-W/(2*row), W/(2*row)),
-                                  (i//row) * H / row + np.random.randint(-H/(2*row), H/(2*row)))
+        self.kernels = np.array([((i%row) * W/row + np.random.randint(W/(row)),
+                                  (i//row) * H / row + np.random.randint(H/(row)))
                         for i in range(nb_place_cells)])
         self.place_field_radius = place_field_radius
         self.place_field_radius = np.random.choice([4*place_field_radius/5, place_field_radius, 3*place_field_radius/2], nb_place_cells)
@@ -125,6 +125,7 @@ class Environment(object):
         """
         features = np.exp(-np.sum(np.power(self.pos - self.pc.kernels, 2), axis=1)/(self.pc.sigma2))
         features[np.linalg.norm(self.pos - self.pc.kernels, axis=1) > self.pc.place_field_radius] = 0
+        np.concatenate([features, [self.out_of_bound(self.goals[0])]]) # The rat knows if he has eaten recently.
         #head_cells_kernels = np.linspace(-np.pi, np.pi, 10)
         #head_cells_features = np.exp(-np.power(self.direction - head_cells_kernels, 2)/0.5)
         #np.concatenate([features, head_cells_features], axis=0)

@@ -31,15 +31,16 @@ from matplotlib import animation
 
 import time
 import sys
-import pickle
+import cPickle as pickle
 import gzip
+import sys
 
 
 from environment import Environment, TrainingEnvironment, PlaceCells, TaskEnvironment
 from linear_dyna import ep_lindyn_mg
 
-def main():
-    pc = PlaceCells(200, 100, 2000, 1000)
+def main(replay_only=False):
+    pc = PlaceCells(100, 140, 2000, 1000)
 
     print("entrainement gauche (20 boucles par jour sur 7 jours)")
     env = TrainingEnvironment('L', 20, pc)
@@ -63,18 +64,10 @@ def main():
     print("fin")
 
     # Sauvegarde du log (seulement partie tache) dans un fichier compressé
-    with gzip.open('log_{}.pklz'.format(int(time.time())), 'wb') as f:
+    path = 'log_{}.pklz'.format(int(time.time()))
+    with gzip.open(path, 'wb') as f:
         pickle.dump({'log': log, 'theta':theta, 'b': b, 'F': F, 'env': env}, f)
-    interesting = []
-    sleep = False
-    for elem in log:
-        if isinstance(elem, str) and elem == "end":
-            sleep = False
-        if sleep:
-            interesting.append(elem)
-        if isinstance(elem, str) and elem == "sleep":
-            sleep = True
-    animate(env, iter(log))  # put interesting instead of log to see only the replays
+    play_ep(path, replay_only)
 
 def animate(env, ep):  # Some very weird things with matplotlib. I don't understand it either
     def true_animate(value):
@@ -109,21 +102,36 @@ def animate(env, ep):  # Some very weird things with matplotlib. I don't underst
     else:
         plt.show()
 
-def play_ep(): # Replay an episode from a log (the name must be put manually)
-    with gzip.open('log_{}.pklz'.format(1464356873), 'rb') as f:
+def play_ep(path, replay_only=False): # Replay an episode from a log (the name must be put manually)
+    with gzip.open(path, 'rb') as f:
         a = pickle.load(f)
     log = a['log']
     env = a['env']
     env.patches = env.init_patches()
-    interesting = []
-    sleep = False
-    for elem in log:
-        if isinstance(elem, str) and elem == "end":
-            sleep = False
-        if sleep:
-            interesting.append(elem)
-        if isinstance(elem, str) and elem == "sleep":
-            sleep = True
-    animate(env, iter(log))
+    if replay_only:
+        interesting = []
+        sleep = False
+        for elem in log:
+            if isinstance(elem, str) and elem == "end":
+                sleep = False
+            if sleep:
+                interesting.append(elem)
+            if isinstance(elem, str) and elem == "sleep":
+                sleep = True
+    else:
+        interesting = log
+    animate(env, iter(interesting))
 
-main()  # Change to play_ep() to replay a log
+
+if __name__ == "__main__":
+    arg = sys.argv
+    if '-r' in arg:
+        replay_only = True
+    path = None
+    for p in arg[1:]:
+        if p != '-r':
+            path = p
+    if path is not None:
+        play_ep(path, replay_only)
+    else:
+        main(replay_only)  # Change to play_ep() to replay a log
