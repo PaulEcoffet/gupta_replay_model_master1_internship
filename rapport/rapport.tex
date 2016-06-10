@@ -212,7 +212,12 @@ The idea of replay is to use the knowledge got after some time. For instance, le
 
 RL algorithms with planning use a model of their environment to infer the value  of a behaviour without actually doing it. The model is commonly a transition table between the possible states in the environment according to the action done by the agent. For exemple, if the agent has to solve a maze and has access to a transition table, then it can look up the table and know that if he is in the case \((3, 5)\) and it does the action ``go to the east'', it will be in \((4, 5)\), without actually doing the action.
 
-The model can be either directly accessible (given by the developer) or inferred by the agent. When the model is inferred, the agent builds explicitly the transition table according to the experiences he has in its environment. In this document, we will mainly talk about the Dyna algorithms. Dyna is a class of RL algorithms where the model is inferred by the agent. There is two phase during an iteration of Dyna. The first phase is when the agent interacts with its environment: it observes its state and reward, do an action according to its policy and go to the next state. It also updates its model of the environment according to this new experience. The second part is the \emph{planning} phase. During the planning phase, the agent improves its value function estimation with simulations according to its model: The agent generates a sample state, an experience, according to some rules (a probability distribution) and uses its model to compute the value of this sample thanks its model. Then, it updates its solution according to this simulation \parencite{sutton_dyna-style_2012}. Algorithm~\ref{alg:canonical_dyna} from \textcite{sutton_dyna-style_2012} is the canonical form of a Dyna algorithm. In this algorithm and next algorithms,
+The model can be either directly accessible (given by the developer) or inferred by the agent. When the model is inferred, the agent builds explicitly the transition table according to the experiences he has in its environment. In this document, we will mainly talk about the Dyna algorithms. Dyna is a class of RL algorithms where the model is inferred by the agent. There is two phase during an iteration of Dyna. The first phase is when the agent interacts with its environment: it observes its state and reward, do an action according to its policy and go to the next state. It also updates its model of the environment according to this new experience. The second part is the \emph{planning} phase. During the planning phase, the agent improves its value function estimation with simulations according to its model: The agent generates a sample state, an experience, according to some rules (a probability distribution) and uses its model to compute the value of this sample thanks its model. Then, it updates its solution according to this simulation \parencite{sutton_dyna-style_2012}.
+Algorithm~\ref{alg:canonical_dyna} from \textcite{sutton_dyna-style_2012} is the canonical form of a Dyna algorithm. In this algorithm and next algorithms, \(F\) and \(b\) represent the model of the environment built by the agent. \(F\) is a transition matrix. If \(\phi\) is the current feature vector of the state the agent is, then \(\phi' = F\phi\) is the estimated feature vector of the next state the agent will be according to its policy \(\pi\). \(b\) is the expected reward per feature activation vector. For instance, if all the features observed by the agent are at \(0\) except from the \(i\)-th feature is at \(2\) and \(b_i = 0.25\), then the expected reward for this state according to the agent's model is \(\hat{r} = 0.5\).The expected reward from a feature vector according to the model of the agent is given by equation~\ref{expected_reward}.
+
+\begin{equation}
+\hat{r} = b^\top \phi \label{expected_reward}
+\end{equation}
 
 \begin{algorithm}[htbp]
   \DontPrintSemicolon
@@ -223,7 +228,11 @@ The model can be either directly accessible (given by the developer) or inferred
   \While{\textbf{not} end}{
     \(a \gets\) action according to \(\pi\) for \(\phi\)\;
     Do \(a\), observe the reward \(r\) and the new state \(\phi'\)\;
-    \tcp{******compute F and b******}
+    \(\theta \gets \theta +
+        \alpha(r + \gamma\theta^\top\phi' - \theta^\top\phi)\phi\)\;
+    \(F \gets F + \alpha(\phi' - F\phi)\phi^\top\)\;
+    \(b \gets b + \alpha(r - b^\top\phi)\phi\)\;
+    \(mem \gets \phi'\);
     \For{\(i \gets 1\) to \(k\)}{
       Generate a sample \(\phi\) from distribution \(\mu\)\;
       \(\phi' \gets F\phi\)\;
@@ -231,26 +240,50 @@ The model can be either directly accessible (given by the developer) or inferred
       \(\delta \gets r + \gamma \tilde{V}_*(s') - \tilde{V}(s)\)\;
       \(\tilde{V}(s) \gets \tilde{V}(s) + \alpha \delta\)\;
     }
-    \(s \gets s'\)\;
+    \(phi \gets mem\)\;
   }
   \caption{Canonical Linear Dyna \label{alg:canonical_dyna}}
+\end{algorithm}
+\todo{remove V(s) for theta}
+
+
+It is interesting to note that the distribution used to draw samples has no influence on whether the solution will converge or not as long as it covers all the possible features, but has an influence on the speed of convergence. Therefore, choosing a good distribution can greatly improve the performance of Dyna. \textcite{sutton_dyna-style_2012} shows that choosing only already explored samples can have a good impact on convergence speed. Therefore, even if \textcite{sutton_dyna-style_2012} do not explicitly say it, the planning phase is then a \emph{replay} phase. In their paper, they present two algorithms which use replays: Linear  Dyna  with  PWMA  prioritized sweeping (LD-PWMA) and Linear Dyna with MG prioritized sweeping (LD-MG). Both these algorithm store all the features the agent encounters in a queue. The features are then drawn from this queue during the planning/replay phase. The idea of prioritized sweeping is to draw the samples in a specific order according to a criterion which will speed up the convergence. PWMA and MG use both a function of the difference between the expected value of the state and its actual value, the value \(\delta\), as the criterion to sort the samples. \textcite{sutton_dyna-style_2012} show that Linear Dyna with MG prioritized sweeping (LD-MG) out performs several classic RL algorithms and PWMA-LD in speed of convergence for classical RL problems.
+
+Algorithm~\ref{alg:} is the pseudo code implementation of Linear Dyna with MG prioritized sweeping policy evaluation.
+
+\begin{algorithm}[htbp]
+  \DontPrintSemicolon
+  \SetAlgoNoLine
+  \KwIn{\(\theta_{init}\) (usually \(\vec{0}\)), first features vector \(\phi\), policy \(\pi\), learning rate \(\alpha\), discount factor \(\gamma\), computational budget \(k\)}
+  \KwOut{Updated \(\tilde{\theta}\)}
+  \(\theta \gets \theta_{init}\)\;
+  \While{\textbf{not} end}{
+    \(a \gets\) action according to \(\pi\) for \(\phi\)\;
+    Do \(a\), observe the reward \(r\) and the new state \(\phi'\)\;
+    \(\theta \gets \theta +
+        \alpha(r + \gamma\theta^\top\phi' - \theta^\top\phi)\phi\)\;
+    \(F \gets F + \alpha(\phi' - F\phi)\phi^\top\)\;
+    \(b \gets b + \alpha(r - b^\top\phi)\phi\)\;
+    \(mem \gets \phi'\);
+    \For{\(i \gets 1\) to \(k\)}{
+      Generate a sample \(\phi\) from distribution \(\mu\)\;
+      \(\phi' \gets F\phi\)\;
+      \(r \gets b^\top\phi\)\;
+      \(\delta \gets r + \gamma \tilde{V}_*(s') - \tilde{V}(s)\)\;
+      \(\tilde{V}(s) \gets \tilde{V}(s) + \alpha \delta\)\;
+    }
+    \(phi \gets mem\)\;
+  }
+  \caption{Linear Dyna with MG prioritized sweeping \label{alg:canonical_dyna}}
 
 \end{algorithm}
 
-It is interesting to note that the distribution used has no influence on whether the solution will converge or not, but has an influence on the speed of convergence. Therefore, choosing a good distribution can greatly improve the performance of Dyna. \textcite{sutton_dyna-style_2012} shows that choosing only already explored samples can have a good impact on performances. Therefore, Dyna can be efficient with a selection of already experienced samples, the planning phase is then a \emph{replay} phase.
-
 \textcite{vanseijen_deeper_2015} highlights even more the strong similarity between RL methods using replay and RL methods using planning. First of all, both of them can be considered as model-based algorithms. Indeed, planning methods using an inferred model use an integrated version of samples experienced over time, thus they are by definition model-based algorithms.
-RL algorithms using experience replay do not store an explicit model, with transition tables and reward estimation. Yet, they store for each sample the state they were in, the reward they received and the next action they did. These data can be considered as a model. They implicitly contains an inferred model of the environnement. Transitions and rewards are available through all the samples the agent experienced and stored in memory \parencite{vanseijen_deeper_2015}.
+RL algorithms using experience replay do not store an explicit model, with transition tables and reward estimation. Yet, they store for each sample the state they were in, the reward they received and the next action they did. These data can be considered as a model. They implicitly contains an inferred model of the environnement. Transitions and rewards are available through all the samples the agent experienced and stored in memory \parencite{vanseijen_deeper_2015}. This is
 
 
 In addition to that, \textcite{vanseijen_deeper_2015} shows a complete equivalence in the value function approximation at each iteration between a TD(0) inspired algorithm with replay and Linear Dyna, a model-based RL algorithm. Though Linear Dyna is a model based algorithm and thought as a ``looking ahead'' algorithm and the replay algorithm as a ``looking backward'' algorithm, they do the exact same calculation.
 The Linear Dyna variation \textcite{vanseijen_deeper_2015} presents is a batch Linear Dyna. Each iteration of planning compute using an integrated version of all the states and transition experienced. One can ask if different variations of Linear Dyna can also be considered as learning by replay methods. For instance, \textcite{sutton_dyna-style_2012} reviewed different Linear Dyna algorithms which look at one possible state per planning iteration. They shows that using already experienced states and prioritizing about states where the difference between the estimated value and the real value was the greatest is an efficient strategy.
-
-
-\begin{itemize}
-\item
-  Can one use Linear dyna with prioritised sweeping as a learning by replay method?
-\end{itemize}
 
 \subsubsection{In vivo}
 \label{sub:In vivo}
