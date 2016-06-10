@@ -27,7 +27,7 @@ def softmax(score, tau, straight_bias=False):
     #print(score, prob, res)
     return res
 
-def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, log=None):
+def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, log=None):
     """
     Does a linear dyna variation from Sutton et al. (2012) with replay.
 
@@ -78,25 +78,23 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, replay_max, log=None):
 
                 if log is not None:
                     log.append([env.get_features(), np.copy(env.pos), np.copy(env.goals[0])])
-        # end of episode
-        if log is not None:
-            log.append("sleep")
-        # Sleep
-        p = replay_max # Number of replay max
-        while not pqueue.empty() and p > 0:
-            unused_prio, i = pqueue.get()
-            if log is not None:
-                activation = np.zeros(env.pc.nb_place_cells)
-                activation[i] = 1
-                log.append([activation, None, None])
-            for j in range(F.shape[2]):
-                if np.any(F[:, i, j] != 0):
-                    delta = -np.inf
-                    for a in range(len(env.action)):
-                        delta = np.max((delta, b[a][j] + gamma * np.dot(theta.T, F[a, :, j]))) - theta[j]
-                    theta[j] = theta[j] + alpha * delta
-                    pqueue.put((-np.abs(delta), j))
-            p -= 1
-        if log is not None:
-            log.append("end")
+                    log.append("sleep")
+                # Replay
+                p = env.p # Number of replay max
+                while not pqueue.empty() and p > 0:
+                    unused_prio, i = pqueue.get()
+                    if log is not None:
+                        activation = np.zeros(env.pc.nb_place_cells)
+                        activation[i] = 1
+                        log.append([activation, None, None])
+                    for j in range(F.shape[2]):
+                        if np.any(F[:, i, j] != 0):
+                            delta = -np.inf
+                            for a in range(len(env.action)):
+                                delta = np.max((delta, b[a][j] + gamma * np.dot(theta.T, F[a, :, j]))) - theta[j]
+                            theta[j] = theta[j] + alpha * delta
+                            pqueue.put((-np.abs(delta), j))
+                    p -= 1
+                if log is not None:
+                    log.append("end")
     return theta, b, F

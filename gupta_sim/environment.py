@@ -74,6 +74,8 @@ class Environment(object):
         self.velocity = 70
         self.direction = np.pi / 2
         self.action = [i*np.pi/4 for i in range(8)]
+        self.default_p = 1
+        self.p = self.default_p # number of replay per sequence
 
         # Matplotlib bound variables
         d_dir = 50 * np.array([np.cos(self.direction), np.sin(self.direction)])
@@ -173,12 +175,8 @@ class Environment(object):
         so that it cannot be consume consecutively. In theory, several goals
         can be placed in the environment, but it will likely not work yet.
         """
-        for i, goal in enumerate(self.goals):
-            if np.linalg.norm(new_pos - goal) < 140:
-                self.goals[i] = np.array([-1000, -1000])
-                self.end = True
-                self.reward = 1
-            self.reward = 0
+        self.p = self.default_p
+        self.reward = 0
 
     def possible_actions(self, pos=None, direction=None):
         """
@@ -323,6 +321,7 @@ class TrainingEnvironment(Environment):
         ugly trick)
         """
         self.reward = 0
+        self.p = self.default_p
         if self.in_rect(prev_pos, 0.45, 0.55, 0.0, 0.8):  ## Punish if going backward
             good_dir = np.array([0, 1])
         elif self.in_rect(prev_pos, 0.1, 0.45, 0.8, 1.0) or self.in_rect(prev_pos, 0.55, 1, 0.0, 0.2):
@@ -343,6 +342,7 @@ class TrainingEnvironment(Environment):
             if np.linalg.norm(new_pos - goal) < 140:
                 self.goals[i] = np.array([-1000, -1000])
                 self.nb_exp += 1
+                self.p = 200
                 if self.nb_exp == self.max_turn:
                     self.nb_exp = 0
                     self.end = True
@@ -411,6 +411,7 @@ class TaskEnvironment(Environment):
         """
         ### KEEP THE PUNITION IF BACKWARD TO PREVENT SURPRISE
         self.reward = 0
+        self.p = self.default_p
         if self.in_rect(prev_pos, 0.45, 0.55, 0.0, 0.8):  ## Punish if going backward
             good_dir = np.array([0, 1])
         elif self.in_rect(prev_pos, 0.1, 0.45, 0.8, 1.0) or self.in_rect(prev_pos, 0.55, 1, 0.0, 0.2):
@@ -435,3 +436,4 @@ class TaskEnvironment(Environment):
                     self.nb_exp = 0
                     self.end = True
                 self.reward = 100
+                self.p = 200
