@@ -25,56 +25,87 @@ In [3]: %run main
 ```
 """
 
+from __future__ import print_function
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
 import time
+import argparse
 import sys
 import cPickle as pickle
 import gzip
-import sys
 
 
 from environment import Environment, TrainingEnvironment, PlaceCells, TaskEnvironment
 from linear_dyna import ep_lindyn_mg
 
-def main(replay_only=False):
-    pc = PlaceCells(100, 140, 2000, 1000)
+np.set_printoptions(threshold=np.nan, precision=2)
 
-    print("entrainement gauche (20 boucles par jour sur 7 jours)")
-    env = TrainingEnvironment('L', 20, pc)
-    theta = np.zeros(pc.nb_place_cells)
-    F = np.zeros((len(env.action), pc.nb_place_cells, pc.nb_place_cells))
-    b = np.zeros((len(env.action), pc.nb_place_cells))
-    theta, b, F = ep_lindyn_mg(env, theta, F, b, 7, 1, 300) # 7: nb jour, 1: nb de fois la tache (1 fois mais avec 20 tours)
+def do_train():
+        pc = PlaceCells(1000, 130, 2000, 1000)
 
-    print("entrainement droite (20 boucles par jour sur 7 jours)")
-    env = TrainingEnvironment('R', 20, pc)
-    theta, b, F = ep_lindyn_mg(env, theta, F, b, 7, 1, 300)
+        print("entrainement gauche (20 boucles par jour sur 7 jours)")
+        env = TrainingEnvironment('L', 20, pc)
+        theta = np.zeros(pc.nb_place_cells)
+        F = np.zeros((len(env.action), pc.nb_place_cells, pc.nb_place_cells))
+        b = np.zeros((len(env.action), pc.nb_place_cells))
+        theta, b, F = ep_lindyn_mg(env, theta, F, b, 7, 1) # 7: nb jour, 1: nb de fois la tache (1 fois mais avec 20 tours)
 
-    log = []
-    print("tache")
-    env = TaskEnvironment('L', 10, pc) # 10 tours à gauche
-    theta, b, F = ep_lindyn_mg(env, theta, F, b, 1, 1, 300, log)
-    env = TaskEnvironment('R', 10, pc) # 10 tours à droite
-    theta, b, F = ep_lindyn_mg(env, theta, F, b, 1, 1, 300, log)
-    env = TaskEnvironment('L', 10, pc) # 10 tours à gauche
-    theta, b, F = ep_lindyn_mg(env, theta, F, b, 1, 1, 300, log)
-    print("fin")
+        print("entrainement droite (20 boucles par jour sur 7 jours)")
+        env = TrainingEnvironment('R', 20, pc)
+        theta, b, F = ep_lindyn_mg(env, theta, F, b, 7, 1)
+        return pc, theta, b, F
+
+def main(replayonly=False, train=False):
+
+    if train:
+        with open(train, 'rb') as f:
+            pc, theta, b, F = pickle.load(f)
+    else: # No training
+        pc = PlaceCells(1000, 50, 2000, 1000)
+
+        print("entrainement gauche (20 boucles par jour sur 7 jours)")
+        env = TrainingEnvironment('L', 20, pc)
+        theta = np.zeros(pc.nb_place_cells)
+        F = np.zeros((len(env.action), pc.nb_place_cells, pc.nb_place_cells))
+        b = np.zeros((len(env.action), pc.nb_place_cells))
+    try:
+        log = []
+        print("tache")
+        env = TaskEnvironment('L', 10, pc) # 10 tours à gauche
+        theta, b, F, pqueue, step = ep_lindyn_mg(env, theta, F, b, 1, 1, None, log=log)
+        env = TaskEnvironment('R', 10, pc) # 10 tours à droite
+        theta, b, F, pqueue, step = ep_lindyn_mg(env, theta, F, b, 1, 1, pqueue, step, log)
+        env = TaskEnvironment('L', 10, pc) # 10 tours à gauche
+        theta, b, F, pqueue, step = ep_lindyn_mg(env, theta, F, b, 1, 1, pqueue, step, log)
+        print("fin")
+    finally:
+        pass
+        #print(theta, "b", b, "F", F, file=open("out.shitstorm", "w"), sep="\n")
+
+    fig = plt.figure(figsize=(7, 7))
+    ax = fig.gca()
+    ax.set_ylim([0, env.H])
+    ax.set_xlim([0, env.W])
+    logt = np.log(theta - np.min(theta) + 1)
+    print(logt)
+    ax.add_collection(env.get_repr((logt - np.min(logt))/((np.max(logt) - np.min(logt))), env.pos, (0, 0)))
+    plt.show()
+    raw_input("next? ")
 
     # Sauvegarde du log (seulement partie tache) dans un fichier compressé
-    path = 'log_{}.pklz'.format(int(time.time()))
-    with gzip.open(path, 'wb') as f:
+    filename = 'log_{}.pklz'.format(int(time.time()))
+    with gzip.open(filename, 'wb') as f:
         pickle.dump({'log': log, 'theta':theta, 'b': b, 'F': F, 'env': env}, f)
-    play_ep(path, replay_only)
+    play_ep(filename, replayonly)
 
 def animate(env, ep):  # Some very weird things with matplotlib. I don't understand it either
     def true_animate(value):
         try:
             info = next(ep)
             while isinstance(info, str):
-                print(info)
                 info = next(ep)
         except StopIteration:
             pass
@@ -92,7 +123,7 @@ def animate(env, ep):  # Some very weird things with matplotlib. I don't underst
     ax.set_ylim([0, env.H])
     ax.set_xlim([0, env.W])
     im_ani = animation.FuncAnimation(fig, true_animate, frames=16000,
-                                     blit=False, repeat=False, interval=16)
+                                     blit=False, repeat=False, interval=2)
     if sys.argv[0] == "vid":
         print("video")
         im_ani.save('vids/replay_1_per_day_5_days{}.mp4'.format(int(time.time())),
@@ -102,13 +133,13 @@ def animate(env, ep):  # Some very weird things with matplotlib. I don't underst
     else:
         plt.show()
 
-def play_ep(path, replay_only=False): # Replay an episode from a log (the name must be put manually)
-    with gzip.open(path, 'rb') as f:
+def play_ep(file_, replayonly=False): # Replay an episode from a log (the name must be put manually)
+    with gzip.open(file_, 'rb') as f:
         a = pickle.load(f)
     log = a['log']
     env = a['env']
     env.patches = env.init_patches()
-    if replay_only:
+    if replayonly:
         interesting = []
         sleep = False
         for elem in log:
@@ -118,20 +149,23 @@ def play_ep(path, replay_only=False): # Replay an episode from a log (the name m
                 interesting.append(elem)
             if isinstance(elem, str) and elem == "sleep":
                 sleep = True
+        animate(env, iter(interesting))
     else:
-        interesting = log
-    animate(env, iter(interesting))
+        animate(env, iter(log))
 
 
 if __name__ == "__main__":
-    arg = sys.argv
-    if '-r' in arg:
-        replay_only = True
-    path = None
-    for p in arg[1:]:
-        if p != '-r':
-            path = p
-    if path is not None:
-        play_ep(path, replay_only)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--replayonly', action='store_true')
+    parser.add_argument('-t', '--train', type=str, default=None)
+    parser.add_argument('--do-train', type=str, default=None)
+    parser.add_argument('infile', nargs='?', type=str,
+                        default=None)
+    args = parser.parse_args()
+    if args.do_train:
+        with open(args.do_train, 'wb') as f:
+            pickle.dump(do_train(), f)
+    elif args.infile is None:
+        main(args.replayonly, args.train)
     else:
-        main(replay_only)  # Change to play_ep() to replay a log
+        play_ep(args.infile, args.replayonly)

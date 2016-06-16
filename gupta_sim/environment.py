@@ -44,7 +44,7 @@ class PlaceCells(object):
                         for i in range(nb_place_cells)])
         self.place_field_radius = place_field_radius
         self.place_field_radius = np.random.choice([4*place_field_radius/5, place_field_radius, 3*place_field_radius/2], nb_place_cells)
-        self.sigma2 = self.place_field_radius**2
+        self.sigma2 = 4*self.place_field_radius**2
 
 class Environment(object):
     def __init__(self, place_cells, seed=None):
@@ -74,7 +74,7 @@ class Environment(object):
         self.velocity = 70
         self.direction = np.pi / 2
         self.action = [i*np.pi/4 for i in range(8)]
-        self.default_p = 1
+        self.default_p = 0
         self.p = self.default_p # number of replay per sequence
 
         # Matplotlib bound variables
@@ -184,12 +184,27 @@ class Environment(object):
         Lists all the action the agent can do without going into a wall or out
         of the environment.
         """
+        if pos is None:
+            pos = self.pos
+        if self.in_rect(pos, 0.45, 0.55, 0.0, 0.8):  ## Punish if going backward
+            good_dir = np.array([0, 1])
+        elif self.in_rect(pos, 0.1, 0.45, 0.8, 1.0) or self.in_rect(pos, 0.55, 1, 0.0, 0.2):
+            good_dir = np.array([-1, 0])
+        elif self.in_rect(pos, 0.55, 0.9, 0.8, 1.0) or self.in_rect(pos, 0, 0.45, 0.0, 0.2):
+            good_dir = np.array([1, 0])
+        elif self.in_rect(pos, 0.9, 1, 0.2, 1) or self.in_rect(pos, 0.0, 0.1, 0.2, 1):
+            good_dir = np.array([0, -1])
+        else:
+            good_dir = np.array([0, 0])
+
         possible = []
         for a in range(len(self.action)):
             new_pos, direc = self.sim_action(a)
             new_pos += self.velocity/2 * np.array([np.cos(direc), np.sin(direc)])
-            if not (self.in_walls(new_pos) or self.out_of_bound(new_pos)):
+            if not (self.in_walls(new_pos) or self.out_of_bound(new_pos)) and np.inner(new_pos - pos, good_dir) >= 0:
                 possible.append(a)
+        if len(possible) == 0:
+            raise Exception("agent is completly stuck")
         return possible
 
     def sim_action(self, a, pos=None, direction=None):
@@ -334,7 +349,7 @@ class TrainingEnvironment(Environment):
         else:
             good_dir = None
         if good_dir is not None and np.dot(new_pos - prev_pos, good_dir) < 0:
-            self.reward = -10
+            self.reward = 0
             new_pos[0] = prev_pos[0]
             new_pos[1] = prev_pos[1]
         if self.on_start(self.pos):
@@ -343,7 +358,7 @@ class TrainingEnvironment(Environment):
             if np.linalg.norm(new_pos - goal) < 140:
                 self.goals[i] = np.array([-1000, -1000])
                 self.nb_exp += 1
-                self.p = 200
+                self.p = 20
                 if self.nb_exp == self.max_turn:
                     self.nb_exp = 0
                     self.end = True
@@ -424,7 +439,7 @@ class TaskEnvironment(Environment):
         else:
             good_dir = None
         if good_dir is not None and np.dot(new_pos - prev_pos, good_dir) < 0:
-            self.reward = -10
+            self.reward = 0
             new_pos[0] = prev_pos[0]
             new_pos[1] = prev_pos[1]
         if self.on_start(self.pos):
@@ -436,5 +451,7 @@ class TaskEnvironment(Environment):
                 if self.nb_exp == self.max_turn:
                     self.nb_exp = 0
                     self.end = True
-                self.reward = 100
+                self.reward = 10
                 self.p = 200
+                break
+        self.reward += np.random.normal(scale=0.01)

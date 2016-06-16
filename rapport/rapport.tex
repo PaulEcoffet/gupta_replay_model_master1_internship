@@ -223,7 +223,7 @@ Algorithm~\ref{alg:canonical_dyna} from \textcite{sutton_dyna-style_2012} is the
   \DontPrintSemicolon
   \SetAlgoNoLine
   \KwIn{\(\theta_{init}\) (usually \(\vec{0}\)), first features vector \(\phi\), policy \(\pi\), learning rate \(\alpha\), discount factor \(\gamma\), computational budget \(k\)}
-  \KwOut{Updated \(\tilde{\theta}\)}
+  \KwOut{Updated \(\theta\)}
   \(\theta \gets \theta_{init}\)\;
   \While{\textbf{not} end}{
     \(a \gets\) action according to \(\pi\) for \(\phi\)\;
@@ -232,15 +232,15 @@ Algorithm~\ref{alg:canonical_dyna} from \textcite{sutton_dyna-style_2012} is the
         \alpha(r + \gamma\theta^\top\phi' - \theta^\top\phi)\phi\)\;
     \(F \gets F + \alpha(\phi' - F\phi)\phi^\top\)\;
     \(b \gets b + \alpha(r - b^\top\phi)\phi\)\;
-    \(mem \gets \phi'\);
+    \(mem \gets \phi'\)\;
     \For{\(i \gets 1\) to \(k\)}{
       Generate a sample \(\phi\) from distribution \(\mu\)\;
       \(\phi' \gets F\phi\)\;
       \(r \gets b^\top\phi\)\;
-      \(\delta \gets r + \gamma \tilde{V}_*(s') - \tilde{V}(s)\)\;
-      \(\tilde{V}(s) \gets \tilde{V}(s) + \alpha \delta\)\;
+      \(\delta \gets r + \gamma \theta^\top\phi' - \theta^\top(\phi)\)\;
+      \(\theta \gets \theta + \alpha \delta\)\;
     }
-    \(phi \gets mem\)\;
+    \(\phi \gets mem\)\;
   }
   \caption{Canonical Linear Dyna \label{alg:canonical_dyna}}
 \end{algorithm}
@@ -264,7 +264,7 @@ Algorithm~\ref{alg:} is the pseudo code implementation of Linear Dyna with MG pr
         \alpha(r + \gamma\theta^\top\phi' - \theta^\top\phi)\phi\)\;
     \(F \gets F + \alpha(\phi' - F\phi)\phi^\top\)\;
     \(b \gets b + \alpha(r - b^\top\phi)\phi\)\;
-    \(mem \gets \phi'\);
+    \(mem \gets \phi'\)\;
     \For{\(i \gets 1\) to \(k\)}{
       Generate a sample \(\phi\) from distribution \(\mu\)\;
       \(\phi' \gets F\phi\)\;
