@@ -96,5 +96,6 @@ target/
 # *.mp4
 
 # R analysis
-.Rdata
+.RData
 .Rhistory
+.Rapp.history
