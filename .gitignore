@@ -94,3 +94,7 @@ target/
 
 # Heavy files
 # *.mp4
+
+# R analysis
+.Rdata
+.Rhistory
