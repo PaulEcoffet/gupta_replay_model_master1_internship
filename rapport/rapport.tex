@@ -244,29 +244,32 @@ Algorithm~\ref{alg:canonical_dyna} from \textcite{sutton_dyna-style_2012} is the
   }
   \caption{Canonical Linear Dyna \label{alg:canonical_dyna}}
 \end{algorithm}
-\todo{remove V(s) for theta}
 
 
 It is interesting to note that the distribution used to draw samples has no influence on whether the solution will converge or not as long as it covers all the possible features, but has an influence on the speed of convergence. Therefore, choosing a good distribution can greatly improve the performance of Dyna. \textcite{sutton_dyna-style_2012} shows that choosing only already explored samples can have a good impact on convergence speed. Therefore, even if \textcite{sutton_dyna-style_2012} do not explicitly say it, the planning phase is then a \emph{replay} phase. In their paper, they present two algorithms which use replays: Linear  Dyna  with  PWMA  prioritized sweeping (LD-PWMA) and Linear Dyna with MG prioritized sweeping (LD-MG). Both these algorithm store all the features the agent encounters in a queue. The features are then drawn from this queue during the planning/replay phase. The idea of prioritized sweeping is to draw the samples in a specific order according to a criterion which will speed up the convergence. PWMA and MG use both a function of the difference between the expected value of the state and its actual value, the value \(\delta\), as the criterion to sort the samples. \textcite{sutton_dyna-style_2012} show that Linear Dyna with MG prioritized sweeping (LD-MG) out performs several classic RL algorithms and PWMA-LD in speed of convergence for classical RL problems.
 
-Algorithm~\ref{alg:} is the pseudo code implementation of Linear Dyna with MG prioritized sweeping policy evaluation.
+Algorithm~\ref{alg:mg_dyna} is the pseudo code implementation of Linear Dyna with MG prioritized sweeping policy evaluation.
 
 \begin{algorithm}[htbp]
   \DontPrintSemicolon
   \SetAlgoNoLine
-  \KwIn{\(\theta_{init}\) (usually \(\vec{0}\)), first features vector \(\phi\), policy \(\pi\), learning rate \(\alpha\), discount factor \(\gamma\), computational budget \(k\)}
+  \KwIn{\(\theta_{init}\) (usually \(\vec{0}\)), first feature vector \(\phi\), policy \(\pi\), learning rate \(\alpha\), discount factor \(\gamma\), computational budget \(k\)}
   \KwOut{Updated \(\tilde{\theta}\)}
   \(\theta \gets \theta_{init}\)\;
+  Init PQueue\;
   \While{\textbf{not} end}{
     \(a \gets\) action according to \(\pi\) for \(\phi\)\;
     Do \(a\), observe the reward \(r\) and the new state \(\phi'\)\;
+    \(\delta \gets r + \gamma \theta^\top\phi' - \theta^\top\phi\)\;
     \(\theta \gets \theta +
-        \alpha(r + \gamma\theta^\top\phi' - \theta^\top\phi)\phi\)\;
+        \alpha\delta\)\;
     \(F \gets F + \alpha(\phi' - F\phi)\phi^\top\)\;
     \(b \gets b + \alpha(r - b^\top\phi)\phi\)\;
-    \(mem \gets \phi'\)\;
-    \For{\(i \gets 1\) to \(k\)}{
-      Generate a sample \(\phi\) from distribution \(\mu\)\;
+    \ForAll{\(i\) such as \(\phi(i) \neq 0\)}{
+      Put \(i\) on the PQueue with priority \(|\delta\phi(i)|\)\;
+    }
+    counter \(\gets 0\)\;
+    \While{PQueue \textbf{is not} empty \textbf{and} counter \(\leq k\)}{
       \(\phi' \gets F\phi\)\;
       \(r \gets b^\top\phi\)\;
       \(\delta \gets r + \gamma \tilde{V}_*(s') - \tilde{V}(s)\)\;
@@ -274,7 +277,7 @@ Algorithm~\ref{alg:} is the pseudo code implementation of Linear Dyna with MG pr
     }
     \(phi \gets mem\)\;
   }
-  \caption{Linear Dyna with MG prioritized sweeping \label{alg:canonical_dyna}}
+  \caption{Linear Dyna with MG prioritized sweeping \label{alg:mg_dyna}}
 
 \end{algorithm}
 

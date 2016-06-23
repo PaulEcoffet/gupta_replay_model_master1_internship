@@ -266,6 +266,10 @@ class Environment(object):
 
 class TrainingEnvironment(Environment):
     """
+    OBSOLETE
+    I was using this to train the agent not to go backward. Now I just make him
+    impossible to move backward. See Environment.possible_actions.
+
     Define the two training environments inspired from Gupta et al. (2010).
     The training environment is an environment without any reward, but where
     the agent is forced to go in a specific direction. If it does not, the he
@@ -333,8 +337,7 @@ class TrainingEnvironment(Environment):
 
     def trigger_reward(self, prev_pos, new_pos, a):
         """
-        Punish if the agent goes backward and prevent it from moving (with a
-        ugly trick)
+        Punish if the agent goes backward and prevent it from moving
         """
         self.reward = 0
         self.p = self.default_p
@@ -349,7 +352,7 @@ class TrainingEnvironment(Environment):
         else:
             good_dir = None
         if good_dir is not None and np.dot(new_pos - prev_pos, good_dir) < 0:
-            self.reward = 0
+            self.reward = -10
             new_pos[0] = prev_pos[0]
             new_pos[1] = prev_pos[1]
         if self.on_start(self.pos):

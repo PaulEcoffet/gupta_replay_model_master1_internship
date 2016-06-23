@@ -1,7 +1,7 @@
 Read me
 =======
 
-To run the program, the tkinter backend of matplotlib must be used. To do so, you have to run these commands:
+To run the program, the tkinter backend of matplotlib must be used. Other backends do not handle animations well. To do so, you have to run these commands:
 
 ```bash
 $ ipython
@@ -11,6 +11,10 @@ In[2]: %run main
 
 Please note that in the code, the `print` function and the `division` are the ones from python 3. It means that `/` returns a float and `//` return an euclidian division.
 `print` is a function and not a keyword, parenthesis must be added, it can be passed as an argument and has the syntax `print(ma_var, file=f)` which is really nice.
+
+
+The environment has to have a lot of specific properties so that linear dyna works. Read carefull these conditions of the Sutton et al. paper.
+Overlapping features is one of the reason I think linear dyna has convergence issue, yet it is also what make the hypothesis of surprisal possible.
 
 Interesting readings to understand this code:
 

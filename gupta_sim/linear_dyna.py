@@ -4,6 +4,15 @@ from __future__ import print_function
 import numpy as np
 from Queue import PriorityQueue
 
+# From Sutton et al., 2012
+
+#########################################################
+# F numerical radius should be < 1 for convergence !!!! #
+# sum_inf alpha = inf                                   #
+# sum_inf alpha**2 < inf                                #
+# alpha = alpha_0 * N_0 / (N_0 + t)
+#########################################################
+
 gamma = 0.8
 alpha_0 = 0.07
 N_0 = 1000
@@ -26,6 +35,9 @@ def softmax(score, tau, straight_bias=False):
         prob2 = prob1
     res = np.random.choice(len(score), p=0.5*prob1+0.5*prob2)
     return res
+
+
+# TODO : Stop the day / nb_ep_per_day thing and move this logic in the environment
 
 def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, pqueue_in=None, step=0, log=None):
     """
@@ -51,8 +63,7 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, pqueue_in=None, step=0
 
     See Sutton et al. 2012 Dyna-Style Planning with Linear Function
     Approximation and Prioritized Sweeping for details about the algorithm (it
-    is the algorithm 3 in the article). I have only moved the replay part so
-    that it is not done after each step.
+    is the algorithm 3 in the article).
     """
     if pqueue_in:
         pqueue = pqueue_in
@@ -99,7 +110,7 @@ def ep_lindyn_mg(env, theta, F, b, nb_day, nb_ep_per_day, pqueue_in=None, step=0
                         log.append([activation, np.copy(env.pos), np.copy(env.goals[0]), theta])
                     for j in range(F.shape[2]):
 
-                        if np.any(F[:, i, j] != 0) or np.any(F[:, j, i] != 0):
+                        if np.any(F[:, i, j] != 0) or np.any(F[:, j, i] != 0): # Utilisation des lieux futurs possibles mais aussi lieux passées possibles, ne devrait pas gêner convergence
                             #raw_input()
                             delta = - np.inf
                             for a in range(len(env.action)):

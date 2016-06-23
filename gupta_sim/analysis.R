@@ -1,6 +1,6 @@
 library('Hmisc')
 
-out <- read.csv("~/Documents/stage/gupta_sim/out_1000_sym.csv", sep="")
+out <- read.csv("~/Documents/stage/gupta_sim/myfile.csv", sep="")
 
 
 colors = ifelse(out$replay == 'True', 'red', 'blue')
@@ -22,7 +22,7 @@ for (i in 1:length(out$replay)) {
       to_look = c(to_look, i)
       replay = TRUE
   } else if (replay == TRUE && out$replay[i] == "False") {
-    replay = FALSE  
+    replay = FALSE
   }
 }
 
@@ -38,7 +38,11 @@ for (look in to_look) {
   errbar(x=1:length(means), y=means, yplus=maxs, yminus=mins, add=T, type="n")
   lines(means)
   abline(0, 0, col="green")
-  plot(out$step[(look-lmar):(look+rmar)], out$dist_goal[(look-lmar):(look+rmar)], type="l", col=colors[(look-lmar):(look+rmar)], main=paste(look-lmar, '-', look+rmar))
+  plot(out$step[(look-lmar):(look+rmar)], out$dist_goal[(look-lmar):(look+rmar)],
+       type="l",
+       main=paste("Replay dans", look-lmar, '-', look+rmar),
+       ylab="Distance au but",
+       xlab="Pas de temps")
   points(out$step[(look-lmar):(look+rmar)], out$dist_goal[(look-lmar):(look+rmar)], col=colors[(look-lmar):(look+rmar)])
+  abline(0, 0, col="green")
 }
-
